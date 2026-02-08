@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -50,9 +50,16 @@ def readyz():
         raise HTTPException(status_code=503, detail=str(e))
 
 @app.get("/api/notes", response_model=List[NoteOut])
-def list_notes():
+def list_notes(search: Optional[str] = None):
     conn = db()
-    rows = conn.execute("SELECT id, title, body FROM notes ORDER BY id DESC").fetchall()
+    if search:
+        term = f"%{search.strip()}%"
+        rows = conn.execute(
+            "SELECT id, title, body FROM notes WHERE title LIKE ? OR body LIKE ? ORDER BY id DESC",
+            (term, term),
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT id, title, body FROM notes ORDER BY id DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -64,6 +71,20 @@ def create_note(note: NoteIn):
     new_id = cur.lastrowid
     conn.close()
     return {"id": new_id, **note.model_dump()}
+
+@app.put("/api/notes/{note_id}", response_model=NoteOut)
+def update_note(note_id: int, note: NoteIn):
+    conn = db()
+    cur = conn.execute(
+        "UPDATE notes SET title = ?, body = ? WHERE id = ?",
+        (note.title, note.body, note_id),
+    )
+    conn.commit()
+    if cur.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="not found")
+    conn.close()
+    return {"id": note_id, **note.model_dump()}
 
 @app.delete("/api/notes/{note_id}")
 def delete_note(note_id: int):

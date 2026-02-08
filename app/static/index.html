@@ -5,20 +5,75 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Notes App</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; }
+    :root {
+      color-scheme: light;
+      --bg: #f7f7fb;
+      --card: #ffffff;
+      --text: #14161a;
+      --muted: #5b6470;
+      --border: #d8dde6;
+      --primary: #1f2a44;
+      --primary-text: #ffffff;
+      --danger: #b00020;
+      --danger-text: #ffffff;
+      --shadow: 0 8px 24px rgba(20, 22, 26, 0.08);
+    }
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0f1218;
+      --card: #171c25;
+      --text: #f3f5f7;
+      --muted: #98a2b3;
+      --border: #2a3344;
+      --primary: #7c95ff;
+      --primary-text: #0f1218;
+      --danger: #ff5a71;
+      --danger-text: #1a0f12;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 980px;
+      margin: 40px auto;
+      padding: 0 16px 48px;
+      background: var(--bg);
+      color: var(--text);
+    }
     h1 { margin: 0 0 6px; }
-    .sub { color: #555; margin: 0 0 18px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
+    .sub { color: var(--muted); margin: 0 0 18px; }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin: 14px 0;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    input, textarea { width: 100%; padding: 10px; border: 1px solid #bbb; border-radius: 8px; font-size: 14px; }
-    textarea { min-height: 100px; resize: vertical; }
-    button { padding: 10px 14px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 600; }
-    .btn { background: #111; color: #fff; }
-    .danger { background: #b00020; color: #fff; }
+    .stack { display: grid; gap: 10px; }
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      background: transparent;
+      color: var(--text);
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    textarea { min-height: 110px; resize: vertical; }
+    button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    .btn { background: var(--primary); color: var(--primary-text); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .danger { background: var(--danger); color: var(--danger-text); }
     .note-title { font-weight: 700; margin: 0 0 6px; }
-    .note-body { margin: 0; white-space: pre-wrap; color: #222; }
-    .meta { color: #666; font-size: 12px; }
-    .topbar { display:flex; justify-content:space-between; align-items:center; gap: 12px; }
+    .note-body { margin: 0; white-space: pre-wrap; color: var(--text); }
+    .meta { color: var(--muted); font-size: 12px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap: 16px; flex-wrap: wrap; }
+    .actions { display:flex; gap: 8px; align-items:center; }
+    .notes-grid { display: grid; gap: 12px; }
+    .note-actions { display: flex; gap: 8px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
   </style>
 </head>
 <body>
@@ -27,28 +82,46 @@
       <h1>Notes</h1>
       <p class="sub">A tiny FastAPI + Kubernetes demo app.</p>
     </div>
-    <button class="btn" onclick="refreshNotes()">Refresh</button>
+    <div class="actions">
+      <label class="pill">
+        <span>Theme</span>
+        <button id="theme-toggle" class="btn-outline" type="button">Dark</button>
+      </label>
+      <button class="btn" onclick="refreshNotes()">Refresh</button>
+    </div>
   </div>
 
   <div class="card">
-    <div class="row">
-      <div>
-        <label class="meta">Title</label>
-        <input id="title" placeholder="e.g., Demo checklist" />
+    <div class="stack">
+      <div class="row">
+        <div>
+          <label class="meta">Title</label>
+          <input id="title" placeholder="e.g., Demo checklist" />
+        </div>
+        <div>
+          <label class="meta">Body</label>
+          <textarea id="body" placeholder="Type something..."></textarea>
+        </div>
       </div>
-      <div>
-        <label class="meta">Body</label>
-        <textarea id="body" placeholder="Type something..."></textarea>
+      <div class="row">
+        <div>
+          <label class="meta">Search</label>
+          <input id="search" placeholder="Search notes by title or body" />
+        </div>
+        <div class="stack">
+          <span class="meta">Actions</span>
+          <div style="display:flex; gap:10px; flex-wrap: wrap;">
+            <button id="save-btn" class="btn" onclick="submitNote()">Add note</button>
+            <button class="btn-outline" onclick="clearForm()">Clear</button>
+            <button id="cancel-btn" class="btn-outline" onclick="cancelEdit()" style="display:none;">Cancel edit</button>
+          </div>
+        </div>
       </div>
-    </div>
-    <div style="margin-top:12px; display:flex; gap:10px;">
-      <button class="btn" onclick="createNote()">Add note</button>
-      <button onclick="clearForm()">Clear</button>
     </div>
     <p id="msg" class="meta" style="margin-top:10px;"></p>
   </div>
 
-  <div id="notes"></div>
+  <div id="notes" class="notes-grid"></div>
 
 <script>
 async function api(path, opts={}) {
@@ -60,12 +133,42 @@ async function api(path, opts={}) {
   return r.json();
 }
 
+let editingId = null;
+const notesCache = new Map();
+
 function clearForm() {
   document.getElementById("title").value = "";
   document.getElementById("body").value = "";
 }
 
-async function createNote() {
+function updateFormState() {
+  const saveBtn = document.getElementById("save-btn");
+  const cancelBtn = document.getElementById("cancel-btn");
+  if (editingId) {
+    saveBtn.textContent = "Save changes";
+    cancelBtn.style.display = "inline-flex";
+  } else {
+    saveBtn.textContent = "Add note";
+    cancelBtn.style.display = "none";
+  }
+}
+
+function cancelEdit() {
+  editingId = null;
+  clearForm();
+  updateFormState();
+}
+
+function startEdit(id) {
+  const note = notesCache.get(id);
+  if (!note) return;
+  editingId = id;
+  document.getElementById("title").value = note.title;
+  document.getElementById("body").value = note.body;
+  updateFormState();
+}
+
+async function submitNote() {
   const title = document.getElementById("title").value.trim();
   const body = document.getElementById("body").value.trim();
   const msg = document.getElementById("msg");
@@ -77,10 +180,17 @@ async function createNote() {
   }
 
   try {
-    await api("/api/notes", { method: "POST", body: JSON.stringify({ title, body }) });
+    if (editingId) {
+      await api(`/api/notes/${editingId}`, { method: "PUT", body: JSON.stringify({ title, body }) });
+      msg.textContent = "Updated.";
+    } else {
+      await api("/api/notes", { method: "POST", body: JSON.stringify({ title, body }) });
+      msg.textContent = "Saved.";
+    }
     clearForm();
+    editingId = null;
+    updateFormState();
     await refreshNotes();
-    msg.textContent = "Saved.";
   } catch (e) {
     msg.textContent = String(e);
   }
@@ -98,10 +208,12 @@ async function deleteNote(id) {
 
 function renderNotes(items) {
   const el = document.getElementById("notes");
+  notesCache.clear();
   if (!items.length) {
     el.innerHTML = `<div class="card"><p class="meta">No notes yet. Add one above.</p></div>`;
     return;
   }
+  items.forEach(n => notesCache.set(n.id, n));
   el.innerHTML = items.map(n => `
     <div class="card">
       <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
@@ -109,7 +221,10 @@ function renderNotes(items) {
           <p class="note-title">${escapeHtml(n.title)} <span class="meta">#${n.id}</span></p>
           <p class="note-body">${escapeHtml(n.body)}</p>
         </div>
-        <button class="danger" onclick="deleteNote(${n.id})">Delete</button>
+        <div class="note-actions">
+          <button class="btn-outline" onclick="startEdit(${n.id})">Edit</button>
+          <button class="danger" onclick="deleteNote(${n.id})">Delete</button>
+        </div>
       </div>
     </div>
   `).join("");
@@ -121,13 +236,32 @@ function escapeHtml(s) {
 
 async function refreshNotes() {
   try {
-    const items = await api("/api/notes");
+    const term = document.getElementById("search").value.trim();
+    const url = term ? `/api/notes?search=${encodeURIComponent(term)}` : "/api/notes";
+    const items = await api(url);
     renderNotes(items);
   } catch (e) {
     document.getElementById("notes").innerHTML = `<div class="card"><p class="meta">Error: ${escapeHtml(String(e))}</p></div>`;
   }
 }
 
+const themeToggle = document.getElementById("theme-toggle");
+const savedTheme = localStorage.getItem("theme") || "light";
+document.body.dataset.theme = savedTheme;
+themeToggle.textContent = savedTheme === "dark" ? "Light" : "Dark";
+
+themeToggle.addEventListener("click", () => {
+  const next = document.body.dataset.theme === "dark" ? "light" : "dark";
+  document.body.dataset.theme = next;
+  localStorage.setItem("theme", next);
+  themeToggle.textContent = next === "dark" ? "Light" : "Dark";
+});
+
+document.getElementById("search").addEventListener("input", () => {
+  refreshNotes();
+});
+
+updateFormState();
 refreshNotes();
 </script>
 </body>
