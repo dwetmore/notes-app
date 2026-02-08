@@ -5,20 +5,88 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Notes App</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; }
+    /* CSS variables to enable easy theming.  Light and dark values are
+       controlled via the ``body.dark`` class below. */
+    :root {
+      --bg: #f9f9f9;
+      --card-bg: #ffffff;
+      --text: #111111;
+      --sub-text: #555555;
+      --border: #dddddd;
+      --primary: #111111;
+      --danger: #b00020;
+      --radius: 10px;
+    }
+    body.dark {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --text: #e4e4e4;
+      --sub-text: #aaaaaa;
+      --border: #333333;
+      --primary: #bb86fc;
+      --danger: #cf6679;
+    }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 16px;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
     h1 { margin: 0 0 6px; }
-    .sub { color: #555; margin: 0 0 18px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin: 12px 0; }
+    .sub { color: var(--sub-text); margin: 0 0 18px; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 12px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    input, textarea { width: 100%; padding: 10px; border: 1px solid #bbb; border-radius: 8px; font-size: 14px; }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+    }
     textarea { min-height: 100px; resize: vertical; }
-    button { padding: 10px 14px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 600; }
-    .btn { background: #111; color: #fff; }
-    .danger { background: #b00020; color: #fff; }
+    button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.1s ease;
+    }
+    .btn { background: var(--primary); color: #ffffff; }
+    .btn:hover { opacity: 0.9; }
+    .danger { background: var(--danger); color: #ffffff; }
+    .danger:hover { opacity: 0.9; }
     .note-title { font-weight: 700; margin: 0 0 6px; }
-    .note-body { margin: 0; white-space: pre-wrap; color: #222; }
-    .meta { color: #666; font-size: 12px; }
-    .topbar { display:flex; justify-content:space-between; align-items:center; gap: 12px; }
+    .note-body { margin: 0; white-space: pre-wrap; color: var(--text); }
+    .meta { color: var(--sub-text); font-size: 12px; }
+    .topbar {
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .top-actions {
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    #search {
+      max-width: 200px;
+    }
   </style>
 </head>
 <body>
@@ -27,21 +95,25 @@
       <h1>Notes</h1>
       <p class="sub">A tiny FastAPI + Kubernetes demo app.</p>
     </div>
-    <button class="btn" onclick="refreshNotes()">Refresh</button>
+    <div class="top-actions">
+      <input id="search" placeholder="Search notes…" oninput="refreshNotes()" />
+      <button class="btn" onclick="toggleTheme()">Toggle theme</button>
+      <button class="btn" onclick="refreshNotes()">Refresh</button>
+    </div>
   </div>
 
   <div class="card">
     <div class="row">
       <div>
-        <label class="meta">Title</label>
+        <label class="meta" for="title">Title</label>
         <input id="title" placeholder="e.g., Demo checklist" />
       </div>
       <div>
-        <label class="meta">Body</label>
-        <textarea id="body" placeholder="Type something..."></textarea>
+        <label class="meta" for="body">Body</label>
+        <textarea id="body" placeholder="Type something…"></textarea>
       </div>
     </div>
-    <div style="margin-top:12px; display:flex; gap:10px;">
+    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
       <button class="btn" onclick="createNote()">Add note</button>
       <button onclick="clearForm()">Clear</button>
     </div>
@@ -51,7 +123,21 @@
   <div id="notes"></div>
 
 <script>
-async function api(path, opts={}) {
+let editingId = null;
+
+function initTheme() {
+  const stored = localStorage.getItem('theme');
+  if (stored === 'dark') {
+    document.body.classList.add('dark');
+  }
+}
+
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+}
+
+async function api(path, opts = {}) {
   const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
   if (!r.ok) {
     const t = await r.text();
@@ -70,12 +156,10 @@ async function createNote() {
   const body = document.getElementById("body").value.trim();
   const msg = document.getElementById("msg");
   msg.textContent = "";
-
   if (!title || !body) {
     msg.textContent = "Title and body are required.";
     return;
   }
-
   try {
     await api("/api/notes", { method: "POST", body: JSON.stringify({ title, body }) });
     clearForm();
@@ -96,38 +180,106 @@ async function deleteNote(id) {
   }
 }
 
+function editNote(id) {
+  editingId = id;
+  refreshNotes();
+}
+
+function cancelEdit() {
+  editingId = null;
+  refreshNotes();
+}
+
+async function saveEdit(id) {
+  const title = document.getElementById(`edit-title-${id}`).value.trim();
+  const body = document.getElementById(`edit-body-${id}`).value.trim();
+  if (!title || !body) {
+    alert('Title and body required.');
+    return;
+  }
+  try {
+    await api(`/api/notes/${id}`, { method: "PUT", body: JSON.stringify({ title, body }) });
+    editingId = null;
+    await refreshNotes();
+  } catch (e) {
+    alert(String(e));
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+}
+
+function escapeAttr(s) {
+  return s.replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+}
+
 function renderNotes(items) {
   const el = document.getElementById("notes");
   if (!items.length) {
     el.innerHTML = `<div class="card"><p class="meta">No notes yet. Add one above.</p></div>`;
     return;
   }
-  el.innerHTML = items.map(n => `
+  el.innerHTML = items.map(n => {
+    // Format the creation timestamp for display if present
+    const created = n.created_at ? new Date(n.created_at).toLocaleString() : '';
+    if (editingId === n.id) {
+      return `
+      <div class="card">
+        <div class="row" style="gap:8px;">
+          <div>
+            <label class="meta" for="edit-title-${n.id}">Title</label>
+            <input id="edit-title-${n.id}" value="${escapeAttr(n.title)}" />
+          </div>
+          <div>
+            <label class="meta" for="edit-body-${n.id}">Body</label>
+            <textarea id="edit-body-${n.id}">${escapeHtml(n.body)}</textarea>
+          </div>
+        </div>
+        <p class="meta" style="margin-top:6px;">${created ? `Created ${escapeHtml(created)}` : ''}</p>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn" onclick="saveEdit(${n.id})">Save</button>
+          <button onclick="cancelEdit()">Cancel</button>
+        </div>
+      </div>
+      `;
+    }
+    return `
     <div class="card">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
         <div style="flex:1;">
           <p class="note-title">${escapeHtml(n.title)} <span class="meta">#${n.id}</span></p>
           <p class="note-body">${escapeHtml(n.body)}</p>
+          ${created ? `<p class="meta">Created ${escapeHtml(created)}</p>` : ''}
         </div>
-        <button class="danger" onclick="deleteNote(${n.id})">Delete</button>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button class="btn" onclick="editNote(${n.id})">Edit</button>
+          <button class="danger" onclick="deleteNote(${n.id})">Delete</button>
+        </div>
       </div>
     </div>
-  `).join("");
-}
-
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    `;
+  }).join("");
 }
 
 async function refreshNotes() {
   try {
-    const items = await api("/api/notes");
+    const search = document.getElementById('search');
+    const q = search && search.value.trim();
+    const params = q ? `?q=${encodeURIComponent(q)}` : '';
+    const items = await api(`/api/notes${params}`);
     renderNotes(items);
   } catch (e) {
     document.getElementById("notes").innerHTML = `<div class="card"><p class="meta">Error: ${escapeHtml(String(e))}</p></div>`;
   }
 }
 
+// Initialize the theme and load the notes on first render
+initTheme();
 refreshNotes();
 </script>
 </body>
