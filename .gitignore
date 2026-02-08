@@ -1,0 +1,6 @@
+
+# local runtime / dev artifacts
+__pycache__/
+*.pyc
+*.db
+/data/
