@@ -4,5 +4,6 @@ resources:
   - ../../base
 patchesStrategicMerge:
   - ingress-host.yaml
+  - ingress-routes.yaml
   - deployment-image.yaml
   - deployment-securitycontext.yaml
