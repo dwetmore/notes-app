@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notes-app
+  namespace: notes
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: notes-app
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
