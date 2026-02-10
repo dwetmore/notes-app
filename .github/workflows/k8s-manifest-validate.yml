@@ -1,0 +1,56 @@
+name: Validate Kubernetes Manifests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.4.1
+
+      - name: Install kubeconform
+        run: |
+          set -euo pipefail
+          curl -L -o /tmp/kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -C /tmp -xzf /tmp/kubeconform.tar.gz
+          sudo mv /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+
+      - name: Validate manifests
+        run: |
+          set -euo pipefail
+          mapfile -t overlays < <(find . -type f -path "*/overlays/*/kustomization.y*ml" -print)
+          if [ ${#overlays[@]} -gt 0 ]; then
+            for overlay in "${overlays[@]}"; do
+              overlay_dir=$(dirname "$overlay")
+              echo "Validating overlay: $overlay_dir"
+              kustomize build "$overlay_dir" | kubeconform -strict -ignore-missing-schemas -summary
+            done
+          else
+            if [ -d k8s ]; then
+              base_dir="k8s"
+            elif [ -d manifests ]; then
+              base_dir="manifests"
+            else
+              echo "No k8s/ or manifests/ directory found."
+              exit 1
+            fi
+
+            mapfile -t yaml_files < <(find "$base_dir" -type f \( -name "*.yaml" -o -name "*.yml" \) -print)
+            if [ ${#yaml_files[@]} -eq 0 ]; then
+              echo "No YAML files found under $base_dir."
+              exit 1
+            fi
+
+            kubeconform -strict -ignore-missing-schemas -summary "${yaml_files[@]}"
+          fi
