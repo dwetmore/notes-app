@@ -7,13 +7,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py ./
 COPY static ./static
 
-ENV DB_PATH=/data/notes.db
+ENV PYTHONDONTWRITEBYTECODE=1
 EXPOSE 8000
 
-# Run as non-root
-RUN useradd -m -u 10001 appuser \
-    && mkdir -p /data \
-    && chown -R 10001:10001 /data
+RUN useradd -m -u 10001 appuser
 USER 10001
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
