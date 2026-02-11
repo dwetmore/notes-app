@@ -1,0 +1,3 @@
+creation_rules:
+  - path_regex: deploy/.*/.*secret.*\.ya?ml
+    age: age1nlc3xraghrwnglw7qyjc2qmfdjh6ky7rhryuemcvl40u5u0qlfcsnnak9h
