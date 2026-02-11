@@ -1,97 +1,121 @@
 import os
-import sqlite3
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from prometheus_fastapi_instrumentator import Instrumentator
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy import Integer, String, create_engine, or_, select, text
+from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, sessionmaker
 
-DB_PATH = os.environ.get("DB_PATH", "/data/notes.db")
+DB_HOST = os.environ.get("DB_HOST", "postgres")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+DB_NAME = os.environ.get("DB_NAME", "notes")
+DB_USER = os.environ.get("DB_USER", "notes")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "notes")
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+)
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
-app = FastAPI(title="Notes App")
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, connect_args=connect_args)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+Base = declarative_base()
 
-# Serve /static/*
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+class Note(Base):
+    __tablename__ = "notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(String)
+
 
 class NoteIn(BaseModel):
     title: str
     body: str
 
+
 class NoteOut(NoteIn):
     id: int
+    model_config = ConfigDict(from_attributes=True)
 
-def db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, body TEXT)"
-    )
-    return conn
+
+app = FastAPI(title="Notes App")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
 
 @app.get("/")
 def root():
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
+
 @app.get("/healthz")
 def healthz():
     return {"status": "ok"}
 
+
 @app.get("/readyz")
-def readyz():
+def readyz(db: Session = Depends(get_db)):
     try:
-        conn = db()
-        conn.execute("SELECT 1")
-        conn.close()
+        db.execute(text("SELECT 1"))
         return {"ready": True}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
 
+
 @app.get("/api/notes", response_model=List[NoteOut])
-def list_notes(search: Optional[str] = None):
-    conn = db()
+def list_notes(search: Optional[str] = None, db: Session = Depends(get_db)):
+    query = select(Note).order_by(Note.id.desc())
     if search:
         term = f"%{search.strip()}%"
-        rows = conn.execute(
-            "SELECT id, title, body FROM notes WHERE title LIKE ? OR body LIKE ? ORDER BY id DESC",
-            (term, term),
-        ).fetchall()
-    else:
-        rows = conn.execute("SELECT id, title, body FROM notes ORDER BY id DESC").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+        query = query.where(or_(Note.title.like(term), Note.body.like(term)))
+    return db.execute(query).scalars().all()
+
 
 @app.post("/api/notes", response_model=NoteOut)
-def create_note(note: NoteIn):
-    conn = db()
-    cur = conn.execute("INSERT INTO notes (title, body) VALUES (?, ?)", (note.title, note.body))
-    conn.commit()
-    new_id = cur.lastrowid
-    conn.close()
-    return {"id": new_id, **note.model_dump()}
+def create_note(note: NoteIn, db: Session = Depends(get_db)):
+    new_note = Note(title=note.title, body=note.body)
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+    return new_note
+
 
 @app.put("/api/notes/{note_id}", response_model=NoteOut)
-def update_note(note_id: int, note: NoteIn):
-    conn = db()
-    cur = conn.execute(
-        "UPDATE notes SET title = ?, body = ? WHERE id = ?",
-        (note.title, note.body, note_id),
-    )
-    conn.commit()
-    if cur.rowcount == 0:
-        conn.close()
+def update_note(note_id: int, note: NoteIn, db: Session = Depends(get_db)):
+    existing = db.get(Note, note_id)
+    if not existing:
         raise HTTPException(status_code=404, detail="not found")
-    conn.close()
-    return {"id": note_id, **note.model_dump()}
+    existing.title = note.title
+    existing.body = note.body
+    db.commit()
+    db.refresh(existing)
+    return existing
+
 
 @app.delete("/api/notes/{note_id}")
-def delete_note(note_id: int):
-    conn = db()
-    cur = conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
-    conn.commit()
-    conn.close()
-    if cur.rowcount == 0:
+def delete_note(note_id: int, db: Session = Depends(get_db)):
+    existing = db.get(Note, note_id)
+    if not existing:
         raise HTTPException(status_code=404, detail="not found")
+    db.delete(existing)
+    db.commit()
     return {"deleted": note_id}
