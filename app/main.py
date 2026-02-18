@@ -9,15 +9,16 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Integer, String, create_engine, or_, select, text
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, sessionmaker
 
-DB_HOST = os.environ.get("DB_HOST", "postgres")
+DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = os.environ.get("DB_PORT", "5432")
 DB_NAME = os.environ.get("DB_NAME", "notes")
 DB_USER = os.environ.get("DB_USER", "notes")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "notes")
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
-)
+
+if DB_HOST:
+    DATABASE_URL = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+else:
+    DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+pysqlite:///./notes.db")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

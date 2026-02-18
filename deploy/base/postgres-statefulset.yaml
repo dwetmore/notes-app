@@ -16,8 +16,10 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 999
-        fsGroup: 999
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: postgres
           image: postgres:16-alpine
