@@ -43,11 +43,11 @@ cd app
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export DB_HOST=127.0.0.1
-export DB_PORT=5432
-export DB_NAME=notes
-export DB_USER=notes
-export DB_PASSWORD=notes-dev-password
+export POSTGRES_HOST=127.0.0.1
+export POSTGRES_PORT=5432
+export POSTGRES_DB=notes
+export POSTGRES_USER=notes
+export POSTGRES_PASSWORD=notes-dev-password
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 

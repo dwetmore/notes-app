@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 def create_client(tmp_path: Path) -> TestClient:
     db_file = tmp_path / "test.db"
+    os.environ.pop("POSTGRES_HOST", None)
     os.environ.pop("DB_HOST", None)
     os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_file}"
     import main
