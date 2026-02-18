@@ -14,6 +14,11 @@ ENV_KEYS = [
     "DB_NAME",
     "DB_USER",
     "DB_PASSWORD",
+    "POSTGRES_HOST",
+    "POSTGRES_PORT",
+    "POSTGRES_DB",
+    "POSTGRES_USER",
+    "POSTGRES_PASSWORD",
     "DB_PATH",
     "DATABASE_URL",
 ]
@@ -132,3 +137,17 @@ def test_readyz_returns_real_backend_error(tmp_path: Path):
 
     assert response.status_code == 503
     assert response.json() == {"detail": f"{main.BACKEND} readiness failed: db down"}
+
+
+def test_postgres_host_env_is_supported(tmp_path: Path):
+    clear_db_env()
+    os.environ["POSTGRES_HOST"] = "pg.internal"
+    os.environ["POSTGRES_DB"] = "notesdb"
+    os.environ["POSTGRES_USER"] = "notesuser"
+    os.environ["POSTGRES_PASSWORD"] = "notessecret"
+    os.environ["DB_PATH"] = str(tmp_path / "should_not_be_used.db")
+
+    main = load_main_module()
+    assert main.BACKEND == "postgres"
+    assert "pg.internal" in main.DATABASE_URL
+    assert "/notesdb" in main.DATABASE_URL
