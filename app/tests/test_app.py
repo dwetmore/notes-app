@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 ENV_KEYS = [
+    "DATABASE_URL",
     "DB_HOST",
     "DB_PORT",
     "DB_NAME",
@@ -20,7 +21,6 @@ ENV_KEYS = [
     "POSTGRES_USER",
     "POSTGRES_PASSWORD",
     "DB_PATH",
-    "DATABASE_URL",
 ]
 
 
@@ -36,9 +36,8 @@ def load_main_module():
 
 
 def create_client(tmp_path: Path) -> TestClient:
-    db_file = tmp_path / "test.db"
     clear_db_env()
-    os.environ["DB_PATH"] = str(db_file)
+    os.environ["DB_PATH"] = str(tmp_path / "test.db")
     main = load_main_module()
     main.Base.metadata.create_all(bind=main.engine)
     return TestClient(main.app)
@@ -95,18 +94,67 @@ def test_db_selection_requires_env():
         load_main_module()
 
 
-def test_db_host_has_priority_over_db_path(tmp_path: Path):
+def test_database_url_wins_over_db_host_and_db_path(tmp_path: Path):
+    clear_db_env()
+    os.environ["DATABASE_URL"] = "postgresql+psycopg://alice:secret@example.com:5432/notes"
+    os.environ["DB_HOST"] = "ignored-host"
+    os.environ["DB_PATH"] = str(tmp_path / "should-not-be-used.db")
+
+    main = load_main_module()
+    assert main.BACKEND == "postgres"
+    assert main.DATABASE_URL == os.environ["DATABASE_URL"]
+
+
+def test_db_host_selects_postgres(tmp_path: Path):
     clear_db_env()
     os.environ["DB_HOST"] = "postgres.internal"
     os.environ["DB_PATH"] = str(tmp_path / "should_not_be_used.db")
+
     main = load_main_module()
     assert main.BACKEND == "postgres"
     assert "postgres.internal" in main.DATABASE_URL
 
 
+def test_postgres_host_selects_postgres(tmp_path: Path):
+    clear_db_env()
+    os.environ["POSTGRES_HOST"] = "pg.internal"
+    os.environ["DB_PATH"] = str(tmp_path / "should_not_be_used.db")
+
+    main = load_main_module()
+    assert main.BACKEND == "postgres"
+    assert "pg.internal" in main.DATABASE_URL
+
+
+def test_db_path_selects_sqlite():
+    clear_db_env()
+    os.environ["DB_PATH"] = "/tmp/x.db"
+
+    main = load_main_module()
+    assert main.BACKEND == "sqlite"
+    assert main.DATABASE_URL == "sqlite+pysqlite:////tmp/x.db"
+
+
+def test_empty_db_path_does_not_select_sqlite():
+    clear_db_env()
+    os.environ["DB_PATH"] = "   "
+
+    with pytest.raises(RuntimeError, match="Database backend is not configured"):
+        load_main_module()
+
+
+def test_empty_db_path_falls_back_to_postgres_when_host_present():
+    clear_db_env()
+    os.environ["DB_PATH"] = ""
+    os.environ["DB_HOST"] = "postgres.internal"
+
+    main = load_main_module()
+    assert main.BACKEND == "postgres"
+
+
 def test_redact_connection_target_hides_password():
     clear_db_env()
     os.environ["DATABASE_URL"] = "postgresql+psycopg://alice:secret@example.com:5432/notes"
+
     main = load_main_module()
     rendered = main.redact_connection_target(main.DATABASE_URL)
     assert "secret" not in rendered
@@ -137,17 +185,3 @@ def test_readyz_returns_real_backend_error(tmp_path: Path):
 
     assert response.status_code == 503
     assert response.json() == {"detail": f"{main.BACKEND} readiness failed: db down"}
-
-
-def test_postgres_host_env_is_supported(tmp_path: Path):
-    clear_db_env()
-    os.environ["POSTGRES_HOST"] = "pg.internal"
-    os.environ["POSTGRES_DB"] = "notesdb"
-    os.environ["POSTGRES_USER"] = "notesuser"
-    os.environ["POSTGRES_PASSWORD"] = "notessecret"
-    os.environ["DB_PATH"] = str(tmp_path / "should_not_be_used.db")
-
-    main = load_main_module()
-    assert main.BACKEND == "postgres"
-    assert "pg.internal" in main.DATABASE_URL
-    assert "/notesdb" in main.DATABASE_URL

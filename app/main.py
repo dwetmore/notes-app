@@ -13,26 +13,35 @@ from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, ses
 
 logger = logging.getLogger("notes_app")
 
-POSTGRES_HOST = os.environ.get("POSTGRES_HOST") or os.environ.get("DB_HOST")
-POSTGRES_PORT = os.environ.get("POSTGRES_PORT") or os.environ.get("DB_PORT", "5432")
-POSTGRES_DB = os.environ.get("POSTGRES_DB") or os.environ.get("DB_NAME", "notes")
-POSTGRES_USER = os.environ.get("POSTGRES_USER") or os.environ.get("DB_USER", "notes")
-POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD") or os.environ.get("DB_PASSWORD", "notes")
-DB_PATH = os.environ.get("DB_PATH")
-DATABASE_URL_ENV = os.environ.get("DATABASE_URL")
 
-if POSTGRES_HOST:
-    DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-    BACKEND = "postgres"
-elif DATABASE_URL_ENV:
+def env_value(name: str) -> Optional[str]:
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    value = value.strip()
+    return value if value else None
+
+
+DATABASE_URL_ENV = env_value("DATABASE_URL")
+POSTGRES_HOST = env_value("POSTGRES_HOST") or env_value("DB_HOST")
+POSTGRES_PORT = env_value("POSTGRES_PORT") or env_value("DB_PORT") or "5432"
+POSTGRES_DB = env_value("POSTGRES_DB") or env_value("DB_NAME") or "notes"
+POSTGRES_USER = env_value("POSTGRES_USER") or env_value("DB_USER") or "notes"
+POSTGRES_PASSWORD = env_value("POSTGRES_PASSWORD") or env_value("DB_PASSWORD") or "notes"
+DB_PATH = env_value("DB_PATH")
+
+if DATABASE_URL_ENV:
     DATABASE_URL = DATABASE_URL_ENV
+    BACKEND = "postgres"
+elif POSTGRES_HOST:
+    DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
     BACKEND = "postgres"
 elif DB_PATH:
     DATABASE_URL = f"sqlite+pysqlite:///{DB_PATH}"
     BACKEND = "sqlite"
 else:
     raise RuntimeError(
-        "Database backend is not configured. Set DB_HOST or DATABASE_URL for Postgres, or set DB_PATH for SQLite."
+        "Database backend is not configured. Set non-empty DATABASE_URL, DB_HOST/POSTGRES_HOST, or DB_PATH."
     )
 
 
