@@ -9,14 +9,14 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Integer, String, create_engine, or_, select, text
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, sessionmaker
 
-DB_HOST = os.environ.get("DB_HOST")
-DB_PORT = os.environ.get("DB_PORT", "5432")
-DB_NAME = os.environ.get("DB_NAME", "notes")
-DB_USER = os.environ.get("DB_USER", "notes")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "notes")
+POSTGRES_HOST = os.environ.get("POSTGRES_HOST") or os.environ.get("DB_HOST")
+POSTGRES_PORT = os.environ.get("POSTGRES_PORT") or os.environ.get("DB_PORT", "5432")
+POSTGRES_DB = os.environ.get("POSTGRES_DB") or os.environ.get("DB_NAME", "notes")
+POSTGRES_USER = os.environ.get("POSTGRES_USER") or os.environ.get("DB_USER", "notes")
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD") or os.environ.get("DB_PASSWORD", "notes")
 
-if DB_HOST:
-    DATABASE_URL = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+if POSTGRES_HOST:
+    DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 else:
     DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+pysqlite:///./notes.db")
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
