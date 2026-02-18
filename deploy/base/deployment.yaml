@@ -52,7 +52,11 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
+            - name: DB_PATH
+              value: /data/notes.db
           volumeMounts:
+            - name: data
+              mountPath: /data
             - name: tmp
               mountPath: /tmp
           livenessProbe:
@@ -81,5 +85,8 @@ spec:
               cpu: 300m
               memory: 256Mi
       volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: notes-data
         - name: tmp
           emptyDir: {}
