@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Optional
 
@@ -9,16 +10,47 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Integer, String, create_engine, or_, select, text
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, sessionmaker
 
-POSTGRES_HOST = os.environ.get("POSTGRES_HOST") or os.environ.get("DB_HOST")
-POSTGRES_PORT = os.environ.get("POSTGRES_PORT") or os.environ.get("DB_PORT", "5432")
-POSTGRES_DB = os.environ.get("POSTGRES_DB") or os.environ.get("DB_NAME", "notes")
-POSTGRES_USER = os.environ.get("POSTGRES_USER") or os.environ.get("DB_USER", "notes")
+logger = logging.getLogger(__name__)
+
+
+def env_value(*keys: str, default: Optional[str] = None) -> Optional[str]:
+    for key in keys:
+        value = os.environ.get(key)
+        if value:
+            return value
+    return default
+
+
+def redact_connection_target(database_url: str) -> str:
+    if "@" not in database_url:
+        return database_url
+    prefix, suffix = database_url.split("@", 1)
+    if "://" in prefix:
+        scheme, _ = prefix.split("://", 1)
+        return f"{scheme}://***@{suffix}"
+    return f"***@{suffix}"
+
+
+POSTGRES_HOST = env_value("POSTGRES_HOST")
+POSTGRES_PORT = env_value("POSTGRES_PORT", default="5432")
+POSTGRES_DB = env_value("POSTGRES_DB", default="notes")
+POSTGRES_USER = env_value("POSTGRES_USER", default="notes")
 POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD") or os.environ.get("DB_PASSWORD", "notes")
 
-if POSTGRES_HOST:
+if env_value("DATABASE_URL"):
+    DATABASE_URL = env_value("DATABASE_URL")
+    if DATABASE_URL.startswith("postgresql"):
+        BACKEND = "postgres"
+    elif DATABASE_URL.startswith("sqlite"):
+        BACKEND = "sqlite"
+    else:
+        BACKEND = "database_url"
+elif POSTGRES_HOST:
+    BACKEND = "postgres"
     DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 else:
-    DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+pysqlite:///./notes.db")
+    BACKEND = "sqlite"
+    DATABASE_URL = "sqlite+pysqlite:///./notes.db"
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -53,6 +85,7 @@ Instrumentator().instrument(app).expose(app, include_in_schema=False)
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    logger.info("Starting Notes App with backend=%s target=%s", BACKEND, redact_connection_target(DATABASE_URL))
 
 
 def get_db():
@@ -74,12 +107,13 @@ def healthz():
 
 
 @app.get("/readyz")
-def readyz(db: Session = Depends(get_db)):
+def readyz():
     try:
-        db.execute(text("SELECT 1"))
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
         return {"ready": True}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"{BACKEND} readiness failed: {exc}")
 
 
 @app.get("/api/notes", response_model=List[NoteOut])
