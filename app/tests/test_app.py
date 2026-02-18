@@ -3,18 +3,38 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+ENV_KEYS = [
+    "DB_HOST",
+    "DB_PORT",
+    "DB_NAME",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_PATH",
+    "DATABASE_URL",
+]
+
+
+def clear_db_env() -> None:
+    for key in ENV_KEYS:
+        os.environ.pop(key, None)
+
+
+def load_main_module():
+    import main
+
+    return importlib.reload(main)
+
 
 def create_client(tmp_path: Path) -> TestClient:
     db_file = tmp_path / "test.db"
-    os.environ.pop("DB_HOST", None)
-    os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{db_file}"
-    import main
-
-    importlib.reload(main)
+    clear_db_env()
+    os.environ["DB_PATH"] = str(db_file)
+    main = load_main_module()
     main.Base.metadata.create_all(bind=main.engine)
     return TestClient(main.app)
 
@@ -26,13 +46,12 @@ def test_healthz(tmp_path: Path):
     assert response.json() == {"status": "ok"}
 
 
-
-
 def test_readyz(tmp_path: Path):
     client = create_client(tmp_path)
     response = client.get("/readyz")
     assert response.status_code == 200
     assert response.json() == {"ready": True}
+
 
 def test_notes_crud(tmp_path: Path):
     client = create_client(tmp_path)
@@ -63,3 +82,28 @@ def test_notes_crud(tmp_path: Path):
     empty_list_response = client.get("/api/notes")
     assert empty_list_response.status_code == 200
     assert empty_list_response.json() == []
+
+
+def test_db_selection_requires_env():
+    clear_db_env()
+    with pytest.raises(RuntimeError, match="Database backend is not configured"):
+        load_main_module()
+
+
+def test_db_host_has_priority_over_db_path(tmp_path: Path):
+    clear_db_env()
+    os.environ["DB_HOST"] = "postgres.internal"
+    os.environ["DB_PATH"] = str(tmp_path / "should_not_be_used.db")
+    main = load_main_module()
+    assert main.BACKEND == "postgres"
+    assert "postgres.internal" in main.DATABASE_URL
+
+
+def test_redact_connection_target_hides_password():
+    clear_db_env()
+    os.environ["DATABASE_URL"] = "postgresql+psycopg://alice:secret@example.com:5432/notes"
+    main = load_main_module()
+    rendered = main.redact_connection_target(main.DATABASE_URL)
+    assert "secret" not in rendered
+    assert "***" in rendered
+    assert "example.com" in rendered

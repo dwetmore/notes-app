@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -7,18 +8,44 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Integer, String, create_engine, or_, select, text
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, sessionmaker
+
+logger = logging.getLogger("notes_app")
 
 DB_HOST = os.environ.get("DB_HOST")
 DB_PORT = os.environ.get("DB_PORT", "5432")
 DB_NAME = os.environ.get("DB_NAME", "notes")
 DB_USER = os.environ.get("DB_USER", "notes")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "notes")
+DB_PATH = os.environ.get("DB_PATH")
+DATABASE_URL_ENV = os.environ.get("DATABASE_URL")
 
 if DB_HOST:
     DATABASE_URL = f"postgresql+psycopg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    BACKEND = "postgres"
+elif DATABASE_URL_ENV:
+    DATABASE_URL = DATABASE_URL_ENV
+    BACKEND = "postgres"
+elif DB_PATH:
+    DATABASE_URL = f"sqlite+pysqlite:///{DB_PATH}"
+    BACKEND = "sqlite"
 else:
-    DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+pysqlite:///./notes.db")
+    raise RuntimeError(
+        "Database backend is not configured. Set DB_HOST or DATABASE_URL for Postgres, or set DB_PATH for SQLite."
+    )
+
+
+def redact_connection_target(database_url: str) -> str:
+    try:
+        parsed_url: URL = make_url(database_url)
+        if parsed_url.password is None:
+            return parsed_url.render_as_string(hide_password=False)
+        return parsed_url.render_as_string(hide_password=True)
+    except Exception:
+        return database_url
+
+
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -52,6 +79,7 @@ Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 @app.on_event("startup")
 def on_startup() -> None:
+    logger.info("Selected DB backend=%s target=%s", BACKEND, redact_connection_target(DATABASE_URL))
     Base.metadata.create_all(bind=engine)
 
 
@@ -78,8 +106,8 @@ def readyz(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
         return {"ready": True}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"{type(exc).__name__}: {exc}") from exc
 
 
 @app.get("/api/notes", response_model=List[NoteOut])

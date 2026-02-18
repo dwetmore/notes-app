@@ -58,6 +58,13 @@ curl -s http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1:8000/api/notes
 ```
 
+Database backend selection rules:
+
+- Postgres is selected when `DB_HOST` or `DATABASE_URL` is set.
+- SQLite is selected only when `DB_PATH` is set.
+- Startup fails with a clear error when none of these are set.
+
+
 ## Testing
 
 ```bash
