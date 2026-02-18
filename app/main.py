@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from typing import List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException
@@ -39,9 +39,7 @@ else:
 def redact_connection_target(database_url: str) -> str:
     try:
         parsed_url: URL = make_url(database_url)
-        if parsed_url.password is None:
-            return parsed_url.render_as_string(hide_password=False)
-        return parsed_url.render_as_string(hide_password=True)
+        return parsed_url.render_as_string(hide_password=parsed_url.password is not None)
     except Exception:
         return database_url
 
@@ -102,12 +100,14 @@ def healthz():
 
 
 @app.get("/readyz")
-def readyz(db: Session = Depends(get_db)):
+def readyz():
     try:
-        db.execute(text("SELECT 1"))
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
         return {"ready": True}
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=f"{type(exc).__name__}: {exc}") from exc
+        detail = f"{BACKEND} readiness failed: {exc}"
+        raise HTTPException(status_code=503, detail=detail) from exc
 
 
 @app.get("/api/notes", response_model=List[NoteOut])

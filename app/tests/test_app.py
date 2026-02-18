@@ -107,3 +107,28 @@ def test_redact_connection_target_hides_password():
     assert "secret" not in rendered
     assert "***" in rendered
     assert "example.com" in rendered
+
+
+def test_readyz_returns_real_backend_error(tmp_path: Path):
+    client = create_client(tmp_path)
+    import main
+
+    class BoomConn:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, *args, **kwargs):
+            raise RuntimeError("db down")
+
+    original_connect = main.engine.connect
+    main.engine.connect = lambda: BoomConn()
+    try:
+        response = client.get("/readyz")
+    finally:
+        main.engine.connect = original_connect
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": f"{main.BACKEND} readiness failed: db down"}
