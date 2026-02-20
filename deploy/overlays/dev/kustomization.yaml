@@ -6,7 +6,7 @@ patchesStrategicMerge:
   - ingress-host.yaml
   - ingress-routes.yaml
   - deployment-image.yaml
-  - deployment-db-env.yaml
+  - deployment-env.yaml
   - networkpolicy-ingress-namespace.yaml
 # Optional: enable ServiceMonitor only when monitoring.coreos.com CRDs are installed.
 # components:

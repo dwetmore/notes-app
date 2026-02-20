@@ -23,7 +23,6 @@ ENV_KEYS = [
     "DB_PATH",
 ]
 
-
 def clear_db_env() -> None:
     for key in ENV_KEYS:
         os.environ.pop(key, None)

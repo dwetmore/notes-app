@@ -1,5 +1,16 @@
 # Notes App (FastAPI + PostgreSQL + GitOps)
 
+## What it is
+A container-ready notes service combining a FastAPI backend, simple frontend, and Kubernetes deployment assets.
+
+## What it does
+- Exposes CRUD APIs for notes with health and readiness endpoints.
+- Supports environment-driven database configuration (PostgreSQL/SQLite fallback rules).
+- Ships with GitOps-friendly manifests and test coverage for deployment confidence.
+
+## Why it matters
+It demonstrates end-to-end service engineering: API behavior, persistence control, observability hooks, and reproducible cluster deployment.
+
 This repository contains a production-ish demo notes service with:
 
 - FastAPI backend and static frontend
@@ -43,11 +54,11 @@ cd app
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export DB_HOST=127.0.0.1
-export DB_PORT=5432
-export DB_NAME=notes
-export DB_USER=notes
-export DB_PASSWORD=notes-dev-password
+export POSTGRES_HOST=127.0.0.1
+export POSTGRES_PORT=5432
+export POSTGRES_DB=notes
+export POSTGRES_USER=notes
+export POSTGRES_PASSWORD=notes-dev-password
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
