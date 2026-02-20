@@ -1,5 +1,16 @@
 # Notes App (FastAPI + PostgreSQL + GitOps)
 
+## What it is
+A container-ready notes service combining a FastAPI backend, simple frontend, and Kubernetes deployment assets.
+
+## What it does
+- Exposes CRUD APIs for notes with health and readiness endpoints.
+- Supports environment-driven database configuration (PostgreSQL/SQLite fallback rules).
+- Ships with GitOps-friendly manifests and test coverage for deployment confidence.
+
+## Why it matters
+It demonstrates end-to-end service engineering: API behavior, persistence control, observability hooks, and reproducible cluster deployment.
+
 This repository contains a production-ish demo notes service with:
 
 - FastAPI backend and static frontend
@@ -57,6 +68,13 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 curl -s http://127.0.0.1:8000/healthz
 curl -s http://127.0.0.1:8000/api/notes
 ```
+
+Database backend selection rules:
+
+- Postgres is selected when `DB_HOST` or `DATABASE_URL` is set.
+- SQLite is selected only when `DB_PATH` is set.
+- Startup fails with a clear error when none of these are set.
+
 
 ## Testing
 
