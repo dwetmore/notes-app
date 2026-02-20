@@ -8,51 +8,49 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Integer, String, create_engine, or_, select, text
-from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import Mapped, Session, declarative_base, mapped_column, sessionmaker
 
-logger = logging.getLogger("notes_app")
+logger = logging.getLogger(__name__)
 
 
-def env_value(name: str) -> Optional[str]:
-    value = os.environ.get(name)
-    if value is None:
-        return None
-    value = value.strip()
-    return value if value else None
-
-
-DATABASE_URL_ENV = env_value("DATABASE_URL")
-POSTGRES_HOST = env_value("POSTGRES_HOST") or env_value("DB_HOST")
-POSTGRES_PORT = env_value("POSTGRES_PORT") or env_value("DB_PORT") or "5432"
-POSTGRES_DB = env_value("POSTGRES_DB") or env_value("DB_NAME") or "notes"
-POSTGRES_USER = env_value("POSTGRES_USER") or env_value("DB_USER") or "notes"
-POSTGRES_PASSWORD = env_value("POSTGRES_PASSWORD") or env_value("DB_PASSWORD") or "notes"
-DB_PATH = env_value("DB_PATH")
-
-if DATABASE_URL_ENV:
-    DATABASE_URL = DATABASE_URL_ENV
-    BACKEND = "postgres"
-elif POSTGRES_HOST:
-    DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
-    BACKEND = "postgres"
-elif DB_PATH:
-    DATABASE_URL = f"sqlite+pysqlite:///{DB_PATH}"
-    BACKEND = "sqlite"
-else:
-    raise RuntimeError(
-        "Database backend is not configured. Set non-empty DATABASE_URL, DB_HOST/POSTGRES_HOST, or DB_PATH."
-    )
+def env_value(*keys: str, default: Optional[str] = None) -> Optional[str]:
+    for key in keys:
+        value = os.environ.get(key)
+        if value:
+            return value
+    return default
 
 
 def redact_connection_target(database_url: str) -> str:
-    try:
-        parsed_url: URL = make_url(database_url)
-        return parsed_url.render_as_string(hide_password=parsed_url.password is not None)
-    except Exception:
+    if "@" not in database_url:
         return database_url
+    prefix, suffix = database_url.split("@", 1)
+    if "://" in prefix:
+        scheme, _ = prefix.split("://", 1)
+        return f"{scheme}://***@{suffix}"
+    return f"***@{suffix}"
 
 
+POSTGRES_HOST = env_value("POSTGRES_HOST")
+POSTGRES_PORT = env_value("POSTGRES_PORT", default="5432")
+POSTGRES_DB = env_value("POSTGRES_DB", default="notes")
+POSTGRES_USER = env_value("POSTGRES_USER", default="notes")
+POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD") or os.environ.get("DB_PASSWORD", "notes")
+
+if env_value("DATABASE_URL"):
+    DATABASE_URL = env_value("DATABASE_URL")
+    if DATABASE_URL.startswith("postgresql"):
+        BACKEND = "postgres"
+    elif DATABASE_URL.startswith("sqlite"):
+        BACKEND = "sqlite"
+    else:
+        BACKEND = "database_url"
+elif POSTGRES_HOST:
+    BACKEND = "postgres"
+    DATABASE_URL = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+else:
+    BACKEND = "sqlite"
+    DATABASE_URL = "sqlite+pysqlite:///./notes.db"
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
@@ -86,8 +84,8 @@ Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 @app.on_event("startup")
 def on_startup() -> None:
-    logger.info("Selected DB backend=%s target=%s", BACKEND, redact_connection_target(DATABASE_URL))
     Base.metadata.create_all(bind=engine)
+    logger.info("Starting Notes App with backend=%s target=%s", BACKEND, redact_connection_target(DATABASE_URL))
 
 
 def get_db():
@@ -115,8 +113,7 @@ def readyz():
             conn.execute(text("SELECT 1"))
         return {"ready": True}
     except Exception as exc:
-        detail = f"{BACKEND} readiness failed: {exc}"
-        raise HTTPException(status_code=503, detail=detail) from exc
+        raise HTTPException(status_code=503, detail=f"{BACKEND} readiness failed: {exc}")
 
 
 @app.get("/api/notes", response_model=List[NoteOut])
