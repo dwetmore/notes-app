@@ -7,53 +7,107 @@
   <style>
     :root {
       color-scheme: light;
-      --bg: #f7f7fb;
-      --card: #ffffff;
-      --text: #14161a;
-      --muted: #5b6470;
-      --border: #d8dde6;
-      --primary: #1f2a44;
-      --primary-text: #ffffff;
-      --danger: #b00020;
-      --danger-text: #ffffff;
-      --shadow: 0 8px 24px rgba(20, 22, 26, 0.08);
+      --bg: #edf2f7;
+      --bg-accent: #d6e6f7;
+      --card: #ffffffcc;
+      --text: #101827;
+      --muted: #4b5565;
+      --border: #d0d9e6;
+      --primary: #14532d;
+      --primary-text: #f6fff8;
+      --danger: #b42318;
+      --danger-text: #fff6f5;
+      --soft: #edf7f0;
+      --shadow: 0 14px 30px rgba(16, 24, 39, 0.12);
     }
     body[data-theme="dark"] {
       color-scheme: dark;
-      --bg: #0f1218;
-      --card: #171c25;
-      --text: #f3f5f7;
-      --muted: #98a2b3;
-      --border: #2a3344;
-      --primary: #7c95ff;
-      --primary-text: #0f1218;
-      --danger: #ff5a71;
-      --danger-text: #1a0f12;
-      --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --bg: #0b1220;
+      --bg-accent: #152238;
+      --card: #101a2ecc;
+      --text: #eaf0f7;
+      --muted: #9cb0c9;
+      --border: #26344d;
+      --primary: #7fe6aa;
+      --primary-text: #062413;
+      --danger: #ff7b75;
+      --danger-text: #2f0d0b;
+      --soft: #122438;
+      --shadow: 0 18px 34px rgba(0, 0, 0, 0.4);
     }
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      max-width: 980px;
-      margin: 40px auto;
-      padding: 0 16px 48px;
-      background: var(--bg);
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 0% 0%, var(--bg-accent), transparent 68%),
+        radial-gradient(900px 400px at 100% 100%, var(--soft), transparent 62%),
+        var(--bg);
       color: var(--text);
     }
-    h1 { margin: 0 0 6px; }
-    .sub { color: var(--muted); margin: 0 0 18px; }
+    .wrap {
+      width: min(1040px, 100%);
+      margin: 0 auto;
+      padding: 26px 16px 48px;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(30px, 4vw, 42px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      font-family: "Space Grotesk", "IBM Plex Sans", "Avenir Next", sans-serif;
+    }
+    .sub { color: var(--muted); margin: 0; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--card);
+      backdrop-filter: blur(6px);
+    }
     .card {
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 18px;
       margin: 14px 0;
       background: var(--card);
+      backdrop-filter: blur(8px);
       box-shadow: var(--shadow);
+    }
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
     }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .stack { display: grid; gap: 10px; }
-    input, textarea {
+    label.meta {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    input, textarea, select {
       width: 100%;
-      padding: 12px 14px;
+      padding: 11px 13px;
       border: 1px solid var(--border);
       border-radius: 10px;
       font-size: 14px;
@@ -61,76 +115,126 @@
       color: var(--text);
     }
     input::placeholder, textarea::placeholder { color: var(--muted); }
-    textarea { min-height: 110px; resize: vertical; }
-    button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; font-weight: 600; }
+    textarea { min-height: 112px; resize: vertical; }
+    button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
     .btn { background: var(--primary); color: var(--primary-text); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .danger { background: var(--danger); color: var(--danger-text); }
-    .note-title { font-weight: 700; margin: 0 0 6px; }
-    .note-body { margin: 0; white-space: pre-wrap; color: var(--text); }
-    .meta { color: var(--muted); font-size: 12px; }
-    .topbar { display:flex; justify-content:space-between; align-items:center; gap: 16px; flex-wrap: wrap; }
-    .actions { display:flex; gap: 8px; align-items:center; }
+    .meta { color: var(--muted); font-size: 12px; margin: 0; }
+    .alert { min-height: 18px; }
     .notes-grid { display: grid; gap: 12px; }
-    .note-actions { display: flex; gap: 8px; }
+    .note-title { font-weight: 700; margin: 0 0 6px; font-size: 18px; }
+    .note-body { margin: 0; white-space: pre-wrap; color: var(--text); }
+    .note-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .attachment-wrap { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
     .attachment-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .attachments-list { margin-top: 8px; display: grid; gap: 6px; }
-    .attachment-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
-    .attachment-link { color: var(--primary); text-decoration: none; font-size: 13px; }
+    .attachment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--soft);
+    }
+    .attachment-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      word-break: break-all;
+    }
     .attachment-link:hover { text-decoration: underline; }
-    .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+    @media (max-width: 760px) {
+      .row { grid-template-columns: 1fr; }
+      .card { padding: 14px; border-radius: 14px; }
+      .topbar { margin-bottom: 8px; }
+    }
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div>
-      <h1>Notes</h1>
-      <p class="sub">A tiny FastAPI + Kubernetes demo app.</p>
-    </div>
-    <div class="actions">
-      <label class="pill">
-        <span>Theme</span>
-        <button id="theme-toggle" class="btn-outline" type="button">Dark</button>
-      </label>
-      <button class="btn" onclick="refreshNotes()">Refresh</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="stack">
-      <div class="row">
-        <div>
-          <label class="meta">Title</label>
-          <input id="title" placeholder="e.g., Demo checklist" />
-        </div>
-        <div>
-          <label class="meta">Body</label>
-          <textarea id="body" placeholder="Type something..."></textarea>
-        </div>
+  <main class="wrap">
+    <div class="topbar">
+      <div>
+        <h1>Notes</h1>
+        <p class="sub">Add, search, edit, and attach files.</p>
       </div>
-      <div class="row">
-        <div>
-          <label class="meta">Search</label>
-          <input id="search" placeholder="Search notes by title or body" />
+      <div class="actions">
+        <label class="pill">
+          <span>Theme</span>
+          <button id="theme-toggle" class="btn-outline" type="button">Dark</button>
+        </label>
+        <button class="btn" onclick="refreshNotes()">Refresh</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="section-title">Write Note</p>
+      <div class="stack">
+        <div class="row">
+          <div>
+            <label class="meta">Title</label>
+            <input id="title" placeholder="e.g., Demo checklist" />
+          </div>
+          <div>
+            <label class="meta">Body</label>
+            <textarea id="body" placeholder="Type something..."></textarea>
+          </div>
         </div>
-        <div class="stack">
-          <span class="meta">Actions</span>
-          <div style="display:flex; gap:10px; flex-wrap: wrap;">
-            <button id="save-btn" class="btn" onclick="submitNote()">Add note</button>
-            <button class="btn-outline" onclick="clearForm()">Clear</button>
-            <button id="cancel-btn" class="btn-outline" onclick="cancelEdit()" style="display:none;">Cancel edit</button>
+        <div class="row">
+          <div>
+            <label class="meta">Search</label>
+            <input id="search" placeholder="Search notes by title or body" />
+          </div>
+          <div class="stack">
+            <label class="meta">Actions</label>
+            <div class="note-actions">
+              <button id="save-btn" class="btn" onclick="submitNote()">Add note</button>
+              <button class="btn-outline" onclick="clearForm()">Clear</button>
+              <button id="cancel-btn" class="btn-outline" onclick="cancelEdit()" style="display:none;">Cancel edit</button>
+            </div>
           </div>
         </div>
       </div>
+      <p id="msg" class="meta alert" style="margin-top:10px;"></p>
     </div>
-    <p id="msg" class="meta" style="margin-top:10px;"></p>
-  </div>
 
-  <div id="notes" class="notes-grid"></div>
+    <div class="card">
+      <p class="section-title">Quick Upload</p>
+      <div class="row">
+        <div>
+          <label class="meta">Target note</label>
+          <select id="upload-note-select"></select>
+        </div>
+        <div>
+          <label class="meta">File</label>
+          <input id="top-file" type="file" />
+        </div>
+      </div>
+      <div class="note-actions" style="margin-top:12px;">
+        <button id="top-upload-btn" class="btn" type="button" onclick="uploadFromTop()">Upload to selected note</button>
+      </div>
+      <p class="meta" style="margin-top:8px;">Tip: select a note first, then upload. You can still upload from each note card below.</p>
+    </div>
+
+    <div id="notes" class="notes-grid"></div>
+  </main>
 
 <script>
-async function api(path, opts={}) {
+async function api(path, opts = {}) {
   const headers = { ...(opts.headers || {}) };
   if (!(opts.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
@@ -140,13 +244,9 @@ async function api(path, opts={}) {
     const t = await r.text();
     throw new Error(`${r.status} ${r.statusText}: ${t}`);
   }
-  if (r.status === 204) {
-    return null;
-  }
+  if (r.status === 204) return null;
   const contentType = r.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    return r.json();
-  }
+  if (contentType.includes("application/json")) return r.json();
   return r.text();
 }
 
@@ -183,6 +283,8 @@ function startEdit(id) {
   document.getElementById("title").value = note.title;
   document.getElementById("body").value = note.body;
   updateFormState();
+  const select = document.getElementById("upload-note-select");
+  if (select.querySelector(`option[value="${id}"]`)) select.value = String(id);
 }
 
 async function submitNote() {
@@ -229,10 +331,9 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-async function uploadAttachment(noteId) {
-  const input = document.getElementById(`file-${noteId}`);
+async function uploadAttachmentToNote(noteId, fileInput) {
   const msg = document.getElementById("msg");
-  const file = input.files[0];
+  const file = fileInput.files[0];
   if (!file) {
     msg.textContent = "Choose a file first.";
     return;
@@ -242,11 +343,28 @@ async function uploadAttachment(noteId) {
   try {
     await api(`/api/notes/${noteId}/attachments`, { method: "POST", body: formData });
     msg.textContent = `Uploaded ${file.name}.`;
-    input.value = "";
+    fileInput.value = "";
     await refreshNotes();
   } catch (e) {
     msg.textContent = String(e);
   }
+}
+
+async function uploadAttachment(noteId) {
+  const input = document.getElementById(`file-${noteId}`);
+  if (!input) return;
+  await uploadAttachmentToNote(noteId, input);
+}
+
+async function uploadFromTop() {
+  const select = document.getElementById("upload-note-select");
+  const input = document.getElementById("top-file");
+  const noteId = Number(select.value);
+  if (!noteId) {
+    document.getElementById("msg").textContent = "Create or select a note first.";
+    return;
+  }
+  await uploadAttachmentToNote(noteId, input);
 }
 
 async function deleteAttachment(attachmentId) {
@@ -259,18 +377,38 @@ async function deleteAttachment(attachmentId) {
   }
 }
 
+function renderUploadTargets(items) {
+  const select = document.getElementById("upload-note-select");
+  const current = select.value;
+  if (!items.length) {
+    select.innerHTML = `<option value="">No notes available</option>`;
+    select.disabled = true;
+    document.getElementById("top-upload-btn").disabled = true;
+    return;
+  }
+  select.disabled = false;
+  document.getElementById("top-upload-btn").disabled = false;
+  select.innerHTML = items.map(n => `<option value="${n.id}">#${n.id} ${escapeHtml(n.title)}</option>`).join("");
+  if (current && select.querySelector(`option[value="${current}"]`)) {
+    select.value = current;
+  }
+}
+
 function renderNotes(items) {
   const el = document.getElementById("notes");
   notesCache.clear();
+  renderUploadTargets(items);
+
   if (!items.length) {
     el.innerHTML = `<div class="card"><p class="meta">No notes yet. Add one above.</p></div>`;
     return;
   }
+
   items.forEach(n => notesCache.set(n.id, n));
   el.innerHTML = items.map(n => `
     <div class="card">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-        <div style="flex:1;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap: wrap;">
+        <div style="flex:1; min-width: 220px;">
           <p class="note-title">${escapeHtml(n.title)} <span class="meta">#${n.id}</span></p>
           <p class="note-body">${escapeHtml(n.body)}</p>
         </div>
@@ -280,9 +418,9 @@ function renderNotes(items) {
         </div>
       </div>
       <div class="attachment-wrap">
-        <p class="meta">Attachments</p>
+        <p class="meta" style="margin-bottom:8px;">Attachments</p>
         <div class="attachment-row">
-          <input id="file-${n.id}" type="file" style="max-width:280px;" />
+          <input id="file-${n.id}" type="file" style="max-width:320px;" />
           <button class="btn-outline" onclick="uploadAttachment(${n.id})">Upload file</button>
         </div>
         <div class="attachments-list" id="attachments-${n.id}">
@@ -318,7 +456,7 @@ async function loadAttachments(noteId) {
 }
 
 function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
 }
 
 async function refreshNotes() {
