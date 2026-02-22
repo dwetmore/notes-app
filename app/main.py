@@ -34,7 +34,7 @@ POSTGRES_USER = env_value("POSTGRES_USER") or env_value("DB_USER") or "notes"
 POSTGRES_PASSWORD = env_value("POSTGRES_PASSWORD") or env_value("DB_PASSWORD") or "notes"
 DB_PATH = env_value("DB_PATH")
 UPLOAD_DIR = env_value("UPLOAD_DIR") or "/data/uploads"
-UPLOAD_MAX_SIZE_MB = int(env_value("UPLOAD_MAX_SIZE_MB") or "50")
+UPLOAD_MAX_SIZE_MB = int(env_value("UPLOAD_MAX_SIZE_MB") or "700")
 MAX_UPLOAD_SIZE = UPLOAD_MAX_SIZE_MB * 1024 * 1024
 
 if DATABASE_URL_ENV:
@@ -303,21 +303,32 @@ def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = 
     if not original_name:
         raise HTTPException(status_code=400, detail="filename is required")
 
-    data = file.file.read(MAX_UPLOAD_SIZE + 1)
-    file.file.close()
-    if len(data) > MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=413, detail=f"file too large (max {UPLOAD_MAX_SIZE_MB} MiB)")
-
     storage_name = f"{uuid4().hex}-{original_name}"
     destination = Path(UPLOAD_DIR) / storage_name
-    destination.write_bytes(data)
+    size_bytes = 0
+    try:
+        with destination.open("wb") as out:
+            while True:
+                chunk = file.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                size_bytes += len(chunk)
+                if size_bytes > MAX_UPLOAD_SIZE:
+                    raise HTTPException(status_code=413, detail=f"file too large (max {UPLOAD_MAX_SIZE_MB} MiB)")
+                out.write(chunk)
+    except HTTPException:
+        if destination.exists():
+            destination.unlink()
+        raise
+    finally:
+        file.file.close()
 
     attachment = Attachment(
         note_id=note_id,
         filename=original_name,
         storage_name=storage_name,
         content_type=file.content_type or "application/octet-stream",
-        size_bytes=len(data),
+        size_bytes=size_bytes,
     )
     try:
         db.add(attachment)

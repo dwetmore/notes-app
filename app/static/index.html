@@ -238,6 +238,18 @@ async function api(path, opts = {}) {
   return contentType.includes("application/json") ? r.json() : r.text();
 }
 
+async function apiWithTimeout(path, opts = {}, timeoutMs = 20000) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("request timed out")), timeoutMs);
+  });
+  try {
+    return await Promise.race([api(path, opts), timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 let editingId = null;
 let activeTag = "";
 const notesCache = new Map();
@@ -546,7 +558,7 @@ async function loadAttachments(noteId) {
   const el = document.getElementById(`attachments-${noteId}`);
   if (!el) return;
   try {
-    const attachments = await api(`/api/notes/${noteId}/attachments`);
+    const attachments = await apiWithTimeout(`/api/notes/${noteId}/attachments`, {}, 15000);
     if (!attachments.length) {
       el.innerHTML = `<p class="meta">No files yet.</p>`;
       return;

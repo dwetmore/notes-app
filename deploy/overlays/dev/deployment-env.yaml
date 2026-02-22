@@ -37,3 +37,5 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: DB_PATH
               value: /data/notes.db
+            - name: UPLOAD_MAX_SIZE_MB
+              value: "700"

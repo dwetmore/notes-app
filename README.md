@@ -89,7 +89,7 @@ Database backend selection rules:
 Attachment upload defaults:
 
 - `UPLOAD_DIR` controls attachment storage path (default `/data/uploads`).
-- `UPLOAD_MAX_SIZE_MB` controls max upload size (default `50`).
+- `UPLOAD_MAX_SIZE_MB` controls max upload size (default `700`).
 
 
 ## Testing

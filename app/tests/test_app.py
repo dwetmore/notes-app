@@ -283,7 +283,7 @@ def test_upload_size_limit(tmp_path: Path):
         files={"file": ("big.bin", too_big, "application/octet-stream")},
     )
     assert upload_response.status_code == 413
-    assert upload_response.json() == {"detail": "file too large (max 10 MiB)"}
+    assert upload_response.json() == {"detail": f"file too large (max {main.UPLOAD_MAX_SIZE_MB} MiB)"}
 
 
 def test_tags_filter_and_pin_order(tmp_path: Path):
