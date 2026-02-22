@@ -17,6 +17,36 @@ spec:
         - name: onlyoffice
           image: onlyoffice/documentserver:8.1.1
           imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -eu
+              node <<'NODE'
+              const fs = require("fs");
+              const path = "/etc/onlyoffice/documentserver/local.json";
+              const cfg = JSON.parse(fs.readFileSync(path, "utf8"));
+
+              cfg.externalRequest = cfg.externalRequest || {};
+              cfg.externalRequest.action = cfg.externalRequest.action || {};
+              cfg.externalRequest.action.blockPrivateIP = false;
+
+              cfg.services = cfg.services || {};
+              cfg.services.CoAuthoring = cfg.services.CoAuthoring || {};
+              cfg.services.CoAuthoring.server = cfg.services.CoAuthoring.server || {};
+              cfg.services.CoAuthoring.server.limits_tempfile_upload = 734003200;
+
+              cfg.FileConverter = cfg.FileConverter || {};
+              cfg.FileConverter.converter = cfg.FileConverter.converter || {};
+              cfg.FileConverter.converter.maxDownloadBytes = 734003200;
+              cfg.FileConverter.converter.downloadTimeout = cfg.FileConverter.converter.downloadTimeout || {};
+              cfg.FileConverter.converter.downloadTimeout.connectionAndInactivity = "20m";
+              cfg.FileConverter.converter.downloadTimeout.wholeCycle = "20m";
+
+              fs.writeFileSync(path, JSON.stringify(cfg, null, 2));
+              NODE
+              exec /app/ds/run-document-server.sh
           ports:
             - containerPort: 80
           env:
@@ -29,15 +59,7 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 768Mi
+              memory: 1Gi
             limits:
               cpu: 1000m
-              memory: 2Gi
-          volumeMounts:
-            - name: onlyoffice-config
-              mountPath: /etc/onlyoffice/documentserver/local.json
-              subPath: local.json
-      volumes:
-        - name: onlyoffice-config
-          configMap:
-            name: onlyoffice-config
+              memory: 4Gi
