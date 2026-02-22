@@ -61,11 +61,17 @@ def test_readyz(tmp_path: Path):
 def test_notes_crud(tmp_path: Path):
     client = create_client(tmp_path)
 
-    create_response = client.post("/api/notes", json={"title": "First", "body": "Hello"})
+    create_response = client.post(
+        "/api/notes",
+        json={"title": "First", "body": "Hello", "tags": ["work", "todo"], "pinned": True},
+    )
     assert create_response.status_code == 200
     created = create_response.json()
     assert created["id"] > 0
     assert created["title"] == "First"
+    assert created["tags"] == ["work", "todo"]
+    assert created["pinned"] is True
+    assert created["archived"] is False
 
     list_response = client.get("/api/notes")
     assert list_response.status_code == 200
@@ -75,18 +81,25 @@ def test_notes_crud(tmp_path: Path):
 
     update_response = client.put(
         f"/api/notes/{created['id']}",
-        json={"title": "Updated", "body": "World"},
+        json={"title": "Updated", "body": "World", "tags": ["updated"], "pinned": False},
     )
     assert update_response.status_code == 200
     assert update_response.json()["title"] == "Updated"
+    assert update_response.json()["tags"] == ["updated"]
+    assert update_response.json()["pinned"] is False
 
     delete_response = client.delete(f"/api/notes/{created['id']}")
     assert delete_response.status_code == 200
-    assert delete_response.json() == {"deleted": created["id"]}
+    assert delete_response.json() == {"archived": created["id"]}
 
     empty_list_response = client.get("/api/notes")
     assert empty_list_response.status_code == 200
     assert empty_list_response.json() == []
+
+    archived_list_response = client.get("/api/notes?include_archived=true")
+    assert archived_list_response.status_code == 200
+    assert len(archived_list_response.json()) == 1
+    assert archived_list_response.json()[0]["archived"] is True
 
 
 def test_db_selection_requires_env():
@@ -242,12 +255,18 @@ def test_deleting_note_removes_attachments(tmp_path: Path):
     assert delete_note_response.status_code == 200
 
     list_response = client.get(f"/api/notes/{note_id}/attachments")
-    assert list_response.status_code == 404
-    assert list_response.json() == {"detail": "note not found"}
+    assert list_response.status_code == 200
+    assert len(list_response.json()) == 1
 
     download_response = client.get(f"/api/attachments/{attachment_id}/download")
-    assert download_response.status_code == 404
-    assert download_response.json() == {"detail": "attachment not found"}
+    assert download_response.status_code == 200
+
+    purge_response = client.delete(f"/api/notes/{note_id}/purge")
+    assert purge_response.status_code == 200
+
+    list_after_purge = client.get(f"/api/notes/{note_id}/attachments")
+    assert list_after_purge.status_code == 404
+    assert list_after_purge.json() == {"detail": "note not found"}
 
 
 def test_upload_size_limit(tmp_path: Path):
@@ -265,3 +284,52 @@ def test_upload_size_limit(tmp_path: Path):
     )
     assert upload_response.status_code == 413
     assert upload_response.json() == {"detail": "file too large (max 10 MiB)"}
+
+
+def test_tags_filter_and_pin_order(tmp_path: Path):
+    client = create_client(tmp_path)
+    a = client.post("/api/notes", json={"title": "A", "body": "x", "tags": ["ops"], "pinned": False})
+    b = client.post("/api/notes", json={"title": "B", "body": "x", "tags": ["ops", "urgent"], "pinned": True})
+    assert a.status_code == 200
+    assert b.status_code == 200
+
+    listed = client.get("/api/notes")
+    assert listed.status_code == 200
+    items = listed.json()
+    assert items[0]["title"] == "B"
+    assert items[1]["title"] == "A"
+
+    filtered = client.get("/api/notes?tag=urgent")
+    assert filtered.status_code == 200
+    assert len(filtered.json()) == 1
+    assert filtered.json()[0]["title"] == "B"
+
+
+def test_history_and_share_link(tmp_path: Path):
+    client = create_client(tmp_path)
+    create = client.post("/api/notes", json={"title": "v1", "body": "one"})
+    assert create.status_code == 200
+    note_id = create.json()["id"]
+
+    update = client.put(f"/api/notes/{note_id}", json={"title": "v2", "body": "two", "tags": ["t1"], "pinned": True})
+    assert update.status_code == 200
+
+    archive = client.post(f"/api/notes/{note_id}/archive")
+    assert archive.status_code == 200
+    unarchive = client.post(f"/api/notes/{note_id}/unarchive")
+    assert unarchive.status_code == 200
+
+    history = client.get(f"/api/notes/{note_id}/history")
+    assert history.status_code == 200
+    entries = history.json()
+    assert len(entries) >= 3
+    assert {item["action"] for item in entries}.issuperset({"update", "archive", "unarchive"})
+
+    share = client.post(f"/api/notes/{note_id}/share")
+    assert share.status_code == 200
+    share_url = share.json()["share_url"]
+    assert share_url.startswith("/share/")
+
+    shared_api = client.get(share_url.replace("/share/", "/api/share/"))
+    assert shared_api.status_code == 200
+    assert shared_api.json()["id"] == note_id

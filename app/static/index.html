@@ -47,9 +47,9 @@
       color: var(--text);
     }
     .wrap {
-      width: min(1040px, 100%);
+      width: min(1080px, 100%);
       margin: 0 auto;
-      padding: 26px 16px 48px;
+      padding: 24px 16px 48px;
     }
     h1 {
       margin: 0 0 4px;
@@ -59,26 +59,12 @@
       font-family: "Space Grotesk", "IBM Plex Sans", "Avenir Next", sans-serif;
     }
     .sub { color: var(--muted); margin: 0; }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
     .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      background: var(--card);
-      backdrop-filter: blur(6px);
+      display: inline-flex; align-items: center; gap: 8px; font-size: 12px;
+      padding: 7px 10px; border-radius: 999px; border: 1px solid var(--border);
+      color: var(--muted); background: var(--card); backdrop-filter: blur(6px);
     }
     .card {
       border: 1px solid var(--border);
@@ -89,22 +75,10 @@
       backdrop-filter: blur(8px);
       box-shadow: var(--shadow);
     }
-    .section-title {
-      margin: 0 0 10px;
-      font-size: 14px;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: var(--muted);
-      font-weight: 700;
-    }
+    .section-title { margin: 0 0 10px; font-size: 13px; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .stack { display: grid; gap: 10px; }
-    label.meta {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
+    label.meta { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
     input, textarea, select {
       width: 100%;
       padding: 11px 13px;
@@ -115,19 +89,16 @@
       color: var(--text);
     }
     input::placeholder, textarea::placeholder { color: var(--muted); }
-    textarea { min-height: 112px; resize: vertical; }
+    textarea { min-height: 108px; resize: vertical; }
     button {
       padding: 10px 14px;
-      border: 0;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 700;
-      letter-spacing: 0.01em;
+      border: 0; border-radius: 10px; cursor: pointer;
+      font-weight: 700; letter-spacing: .01em;
       transition: transform 120ms ease, opacity 120ms ease;
     }
     button:hover { transform: translateY(-1px); }
     button:active { transform: translateY(0); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
     .btn { background: var(--primary); color: var(--primary-text); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .danger { background: var(--danger); color: var(--danger-text); }
@@ -141,27 +112,32 @@
     .attachment-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .attachments-list { margin-top: 8px; display: grid; gap: 6px; }
     .attachment-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--soft);
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--soft);
     }
-    .attachment-link {
-      color: var(--primary);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      word-break: break-all;
-    }
+    .attachment-link { color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 600; word-break: break-all; }
     .attachment-link:hover { text-decoration: underline; }
+    .chipbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      background: transparent;
+      color: var(--text);
+    }
+    .chip.active { background: var(--primary); color: var(--primary-text); border-color: transparent; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 8px; border-radius: 999px;
+      font-size: 11px; border: 1px solid var(--border); color: var(--muted);
+    }
+    .history-list { max-height: 200px; overflow: auto; display: grid; gap: 8px; margin-top: 8px; }
+    .history-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; background: var(--soft); }
     @media (max-width: 760px) {
       .row { grid-template-columns: 1fr; }
       .card { padding: 14px; border-radius: 14px; }
-      .topbar { margin-bottom: 8px; }
     }
   </style>
 </head>
@@ -170,13 +146,10 @@
     <div class="topbar">
       <div>
         <h1>Notes</h1>
-        <p class="sub">Add, search, edit, and attach files.</p>
+        <p class="sub">Tags, pinning, archive, history, and share links.</p>
       </div>
       <div class="actions">
-        <label class="pill">
-          <span>Theme</span>
-          <button id="theme-toggle" class="btn-outline" type="button">Dark</button>
-        </label>
+        <label class="pill"><span>Theme</span><button id="theme-toggle" class="btn-outline" type="button">Dark</button></label>
         <button class="btn" onclick="refreshNotes()">Refresh</button>
       </div>
     </div>
@@ -190,14 +163,14 @@
             <input id="title" placeholder="e.g., Demo checklist" />
           </div>
           <div>
-            <label class="meta">Body</label>
-            <textarea id="body" placeholder="Type something..."></textarea>
+            <label class="meta">Tags (comma-separated)</label>
+            <input id="tags" placeholder="ops, urgent, personal" />
           </div>
         </div>
         <div class="row">
           <div>
-            <label class="meta">Search</label>
-            <input id="search" placeholder="Search notes by title or body" />
+            <label class="meta">Body</label>
+            <textarea id="body" placeholder="Type something..."></textarea>
           </div>
           <div class="stack">
             <label class="meta">Actions</label>
@@ -205,11 +178,23 @@
               <button id="save-btn" class="btn" onclick="submitNote()">Add note</button>
               <button class="btn-outline" onclick="clearForm()">Clear</button>
               <button id="cancel-btn" class="btn-outline" onclick="cancelEdit()" style="display:none;">Cancel edit</button>
+              <label class="pill"><input id="pinned" type="checkbox" /> Pin this note</label>
+            </div>
+            <div class="row">
+              <div>
+                <label class="meta">Search</label>
+                <input id="search" placeholder="Search notes by title/body/tags" />
+              </div>
+              <div>
+                <label class="meta">Visibility</label>
+                <label class="pill"><input id="show-archived" type="checkbox" /> Include archived</label>
+              </div>
             </div>
           </div>
         </div>
       </div>
       <p id="msg" class="meta alert" style="margin-top:10px;"></p>
+      <div id="tag-chips" class="chipbar"></div>
     </div>
 
     <div class="card">
@@ -227,7 +212,6 @@
       <div class="note-actions" style="margin-top:12px;">
         <button id="top-upload-btn" class="btn" type="button" onclick="uploadFromTop()">Upload to selected note</button>
       </div>
-      <p class="meta" style="margin-top:8px;">Tip: select a note first, then upload. You can still upload from each note card below.</p>
     </div>
 
     <div id="notes" class="notes-grid"></div>
@@ -236,9 +220,7 @@
 <script>
 async function api(path, opts = {}) {
   const headers = { ...(opts.headers || {}) };
-  if (!(opts.body instanceof FormData) && !headers["Content-Type"]) {
-    headers["Content-Type"] = "application/json";
-  }
+  if (!(opts.body instanceof FormData) && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
   const r = await fetch(path, { ...opts, headers });
   if (!r.ok) {
     const t = await r.text();
@@ -246,16 +228,26 @@ async function api(path, opts = {}) {
   }
   if (r.status === 204) return null;
   const contentType = r.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) return r.json();
-  return r.text();
+  return contentType.includes("application/json") ? r.json() : r.text();
 }
 
 let editingId = null;
+let activeTag = "";
 const notesCache = new Map();
+
+function parseTagInput(raw) {
+  return String(raw || "")
+    .split(",")
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+    .filter((v, i, arr) => arr.indexOf(v) === i);
+}
 
 function clearForm() {
   document.getElementById("title").value = "";
   document.getElementById("body").value = "";
+  document.getElementById("tags").value = "";
+  document.getElementById("pinned").checked = false;
 }
 
 function updateFormState() {
@@ -282,32 +274,33 @@ function startEdit(id) {
   editingId = id;
   document.getElementById("title").value = note.title;
   document.getElementById("body").value = note.body;
+  document.getElementById("tags").value = (note.tags || []).join(", ");
+  document.getElementById("pinned").checked = !!note.pinned;
   updateFormState();
-  const select = document.getElementById("upload-note-select");
-  if (select.querySelector(`option[value="${id}"]`)) select.value = String(id);
 }
 
 async function submitNote() {
   const title = document.getElementById("title").value.trim();
   const body = document.getElementById("body").value.trim();
+  const tags = parseTagInput(document.getElementById("tags").value);
+  const pinned = document.getElementById("pinned").checked;
   const msg = document.getElementById("msg");
   msg.textContent = "";
-
   if (!title || !body) {
     msg.textContent = "Title and body are required.";
     return;
   }
-
   try {
+    const payload = { title, body, tags, pinned };
     if (editingId) {
-      await api(`/api/notes/${editingId}`, { method: "PUT", body: JSON.stringify({ title, body }) });
+      await api(`/api/notes/${editingId}`, { method: "PUT", body: JSON.stringify(payload) });
       msg.textContent = "Updated.";
     } else {
-      await api("/api/notes", { method: "POST", body: JSON.stringify({ title, body }) });
+      await api("/api/notes", { method: "POST", body: JSON.stringify(payload) });
       msg.textContent = "Saved.";
     }
-    clearForm();
     editingId = null;
+    clearForm();
     updateFormState();
     await refreshNotes();
   } catch (e) {
@@ -315,13 +308,84 @@ async function submitNote() {
   }
 }
 
-async function deleteNote(id) {
-  if (!confirm(`Delete note ${id}?`)) return;
+async function archiveNote(id) {
+  if (!confirm(`Archive note ${id}?`)) return;
   try {
-    await api(`/api/notes/${id}`, { method: "DELETE" });
+    await api(`/api/notes/${id}/archive`, { method: "POST" });
     await refreshNotes();
   } catch (e) {
     alert(String(e));
+  }
+}
+
+async function unarchiveNote(id) {
+  try {
+    await api(`/api/notes/${id}/unarchive`, { method: "POST" });
+    await refreshNotes();
+  } catch (e) {
+    alert(String(e));
+  }
+}
+
+async function purgeNote(id) {
+  if (!confirm(`Permanently delete note ${id} and all attachments/history?`)) return;
+  try {
+    await api(`/api/notes/${id}/purge`, { method: "DELETE" });
+    await refreshNotes();
+  } catch (e) {
+    alert(String(e));
+  }
+}
+
+async function pinToggle(id, shouldPin) {
+  const note = notesCache.get(id);
+  if (!note) return;
+  try {
+    await api(`/api/notes/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        title: note.title,
+        body: note.body,
+        tags: note.tags || [],
+        pinned: shouldPin,
+      }),
+    });
+    await refreshNotes();
+  } catch (e) {
+    alert(String(e));
+  }
+}
+
+async function createShare(id) {
+  try {
+    const resp = await api(`/api/notes/${id}/share`, { method: "POST" });
+    const full = `${window.location.origin}${resp.share_url}`;
+    await navigator.clipboard.writeText(full);
+    document.getElementById("msg").textContent = `Share link copied: ${full}`;
+    await refreshNotes();
+  } catch (e) {
+    document.getElementById("msg").textContent = `Share error: ${String(e)}`;
+  }
+}
+
+async function showHistory(id) {
+  const holder = document.getElementById(`history-${id}`);
+  if (!holder) return;
+  holder.innerHTML = `<p class="meta">Loading history...</p>`;
+  try {
+    const entries = await api(`/api/notes/${id}/history`);
+    if (!entries.length) {
+      holder.innerHTML = `<p class="meta">No history yet.</p>`;
+      return;
+    }
+    holder.innerHTML = `<div class="history-list">${entries.map(item => `
+      <div class="history-item">
+        <div class="meta"><strong>${escapeHtml(item.action)}</strong> at ${escapeHtml(item.created_at)}</div>
+        <div class="meta">title: ${escapeHtml(item.title)} | tags: ${escapeHtml((item.tags || []).join(", ") || "none")} | pinned: ${item.pinned ? "yes" : "no"} | archived: ${item.archived ? "yes" : "no"}</div>
+      </div>
+    `).join("")}</div>`;
+  } catch (e) {
+    holder.innerHTML = `<p class="meta">History error: ${escapeHtml(String(e))}</p>`;
   }
 }
 
@@ -377,52 +441,76 @@ async function deleteAttachment(attachmentId) {
   }
 }
 
+function renderTagChips(items) {
+  const el = document.getElementById("tag-chips");
+  const tags = Array.from(new Set(items.flatMap(n => n.tags || []))).sort();
+  const allClass = activeTag ? "chip" : "chip active";
+  el.innerHTML = `<button class="${allClass}" type="button" onclick="setActiveTag('')">All tags</button>` +
+    tags.map(t => `<button class="${activeTag === t ? "chip active" : "chip"}" type="button" onclick="setActiveTag('${escapeHtml(t)}')">#${escapeHtml(t)}</button>`).join("");
+}
+
+function setActiveTag(tag) {
+  activeTag = tag;
+  refreshNotes();
+}
+
 function renderUploadTargets(items) {
   const select = document.getElementById("upload-note-select");
   const current = select.value;
-  if (!items.length) {
-    select.innerHTML = `<option value="">No notes available</option>`;
+  const active = items.filter(n => !n.archived);
+  if (!active.length) {
+    select.innerHTML = `<option value="">No active notes</option>`;
     select.disabled = true;
     document.getElementById("top-upload-btn").disabled = true;
     return;
   }
   select.disabled = false;
   document.getElementById("top-upload-btn").disabled = false;
-  select.innerHTML = items.map(n => `<option value="${n.id}">#${n.id} ${escapeHtml(n.title)}</option>`).join("");
-  if (current && select.querySelector(`option[value="${current}"]`)) {
-    select.value = current;
-  }
+  select.innerHTML = active.map(n => `<option value="${n.id}">#${n.id} ${escapeHtml(n.title)}</option>`).join("");
+  if (current && select.querySelector(`option[value="${current}"]`)) select.value = current;
 }
 
 function renderNotes(items) {
   const el = document.getElementById("notes");
   notesCache.clear();
   renderUploadTargets(items);
-
+  renderTagChips(items);
   if (!items.length) {
-    el.innerHTML = `<div class="card"><p class="meta">No notes yet. Add one above.</p></div>`;
+    el.innerHTML = `<div class="card"><p class="meta">No notes found.</p></div>`;
     return;
   }
-
   items.forEach(n => notesCache.set(n.id, n));
   el.innerHTML = items.map(n => `
     <div class="card">
       <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap: wrap;">
         <div style="flex:1; min-width: 220px;">
-          <p class="note-title">${escapeHtml(n.title)} <span class="meta">#${n.id}</span></p>
+          <p class="note-title">${n.pinned ? "📌 " : ""}${escapeHtml(n.title)} <span class="meta">#${n.id}</span></p>
           <p class="note-body">${escapeHtml(n.body)}</p>
+          <div class="note-actions" style="margin-top:8px;">
+            ${(n.tags || []).map(t => `<span class="badge">#${escapeHtml(t)}</span>`).join("")}
+            ${n.archived ? `<span class="badge">Archived</span>` : ``}
+          </div>
         </div>
         <div class="note-actions">
           <button class="btn-outline" onclick="startEdit(${n.id})">Edit</button>
-          <button class="danger" onclick="deleteNote(${n.id})">Delete</button>
+          <button class="btn-outline" onclick="pinToggle(${n.id}, ${!n.pinned})">${n.pinned ? "Unpin" : "Pin"}</button>
+          ${n.archived
+            ? `<button class="btn-outline" onclick="unarchiveNote(${n.id})">Unarchive</button>`
+            : `<button class="btn-outline" onclick="archiveNote(${n.id})">Archive</button>`
+          }
+          <button class="btn-outline" onclick="createShare(${n.id})">Share</button>
+          <button class="danger" onclick="purgeNote(${n.id})">Purge</button>
         </div>
       </div>
+      ${n.share_url ? `<p class="meta" style="margin-top:8px;">Share: <a class="attachment-link" href="${escapeHtml(n.share_url)}" target="_blank">${escapeHtml(n.share_url)}</a></p>` : ``}
       <div class="attachment-wrap">
         <p class="meta" style="margin-bottom:8px;">Attachments</p>
         <div class="attachment-row">
-          <input id="file-${n.id}" type="file" style="max-width:320px;" />
-          <button class="btn-outline" onclick="uploadAttachment(${n.id})">Upload file</button>
+          <input id="file-${n.id}" type="file" style="max-width:320px;" ${n.archived ? "disabled" : ""} />
+          <button class="btn-outline" onclick="uploadAttachment(${n.id})" ${n.archived ? "disabled" : ""}>Upload file</button>
+          <button class="btn-outline" onclick="showHistory(${n.id})">History</button>
         </div>
+        <div id="history-${n.id}"></div>
         <div class="attachments-list" id="attachments-${n.id}">
           <p class="meta">Loading attachments...</p>
         </div>
@@ -462,8 +550,13 @@ function escapeHtml(s) {
 async function refreshNotes() {
   try {
     const term = document.getElementById("search").value.trim();
-    const url = term ? `/api/notes?search=${encodeURIComponent(term)}` : "/api/notes";
-    const items = await api(url);
+    const includeArchived = document.getElementById("show-archived").checked;
+    const params = new URLSearchParams();
+    if (term) params.set("search", term);
+    if (activeTag) params.set("tag", activeTag);
+    if (includeArchived) params.set("include_archived", "true");
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    const items = await api(`/api/notes${suffix}`);
     renderNotes(items);
   } catch (e) {
     document.getElementById("notes").innerHTML = `<div class="card"><p class="meta">Error: ${escapeHtml(String(e))}</p></div>`;
@@ -482,9 +575,8 @@ themeToggle.addEventListener("click", () => {
   themeToggle.textContent = next === "dark" ? "Light" : "Dark";
 });
 
-document.getElementById("search").addEventListener("input", () => {
-  refreshNotes();
-});
+document.getElementById("search").addEventListener("input", refreshNotes);
+document.getElementById("show-archived").addEventListener("change", refreshNotes);
 
 updateFormState();
 refreshNotes();

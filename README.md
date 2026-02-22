@@ -31,11 +31,18 @@ Stable endpoints:
 - `GET /api/notes`
 - `POST /api/notes`
 - `PUT /api/notes/{id}`
-- `DELETE /api/notes/{id}`
+- `DELETE /api/notes/{id}` (archives note)
+- `DELETE /api/notes/{id}/purge` (permanent delete)
+- `POST /api/notes/{id}/archive`
+- `POST /api/notes/{id}/unarchive`
+- `POST /api/notes/{id}/share`
+- `GET /api/notes/{id}/history`
 - `GET /api/notes/{id}/attachments`
 - `POST /api/notes/{id}/attachments` (multipart file upload)
 - `GET /api/attachments/{id}/download`
 - `DELETE /api/attachments/{id}`
+- `GET /api/share/{token}` (JSON read-only view)
+- `GET /share/{token}` (read-only HTML page)
 
 ## Local development
 
