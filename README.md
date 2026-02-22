@@ -40,6 +40,7 @@ Stable endpoints:
 - `GET /api/notes/{id}/attachments`
 - `POST /api/notes/{id}/attachments` (multipart file upload)
 - `GET /api/attachments/{id}/download`
+- `GET /api/attachments/{id}/preview` (PPTX slide-text preview)
 - `DELETE /api/attachments/{id}`
 - `GET /api/share/{token}` (JSON read-only view)
 - `GET /share/{token}` (read-only HTML page)

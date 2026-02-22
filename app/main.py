@@ -3,8 +3,10 @@ import os
 from datetime import datetime, timezone
 from html import escape as html_escape
 from pathlib import Path
+from xml.etree import ElementTree as ET
 from uuid import uuid4
 from typing import List, Optional
+import zipfile
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -36,6 +38,8 @@ DB_PATH = env_value("DB_PATH")
 UPLOAD_DIR = env_value("UPLOAD_DIR") or "/data/uploads"
 UPLOAD_MAX_SIZE_MB = int(env_value("UPLOAD_MAX_SIZE_MB") or "700")
 MAX_UPLOAD_SIZE = UPLOAD_MAX_SIZE_MB * 1024 * 1024
+MAX_PPTX_PREVIEW_SLIDES = 100
+MAX_PPTX_PREVIEW_TEXT = 2000
 
 if DATABASE_URL_ENV:
     DATABASE_URL = DATABASE_URL_ENV
@@ -146,6 +150,17 @@ class ShareOut(BaseModel):
     share_url: str
 
 
+class SlidePreviewOut(BaseModel):
+    index: int
+    text: str
+
+
+class AttachmentPreviewOut(BaseModel):
+    type: str
+    filename: str
+    slides: List[SlidePreviewOut]
+
+
 app = FastAPI(title="Notes App")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 Instrumentator().instrument(app).expose(app, include_in_schema=False)
@@ -219,6 +234,30 @@ def ensure_notes_schema() -> None:
         for col_name, col_def in column_defs.items():
             if col_name not in existing:
                 conn.execute(text(f"ALTER TABLE notes ADD COLUMN {col_name} {col_def}"))
+
+
+def _slide_sort_key(name: str) -> int:
+    stem = Path(name).stem
+    digits = "".join(ch for ch in stem if ch.isdigit())
+    return int(digits or 0)
+
+
+def _extract_pptx_slides(path: Path) -> List[SlidePreviewOut]:
+    slides: List[SlidePreviewOut] = []
+    try:
+        with zipfile.ZipFile(path) as zf:
+            names = [n for n in zf.namelist() if n.startswith("ppt/slides/slide") and n.endswith(".xml")]
+            for idx, name in enumerate(sorted(names, key=_slide_sort_key)[:MAX_PPTX_PREVIEW_SLIDES], start=1):
+                raw = zf.read(name)
+                root = ET.fromstring(raw)
+                texts = [t.text.strip() for t in root.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t") if t.text and t.text.strip()]
+                merged = " ".join(texts)[:MAX_PPTX_PREVIEW_TEXT]
+                slides.append(SlidePreviewOut(index=idx, text=merged or "(no text on slide)"))
+    except zipfile.BadZipFile as exc:
+        raise HTTPException(status_code=422, detail="invalid pptx file") from exc
+    except ET.ParseError as exc:
+        raise HTTPException(status_code=422, detail="unable to parse pptx file") from exc
+    return slides
 
 
 @app.on_event("startup")
@@ -381,6 +420,21 @@ def download_attachment(attachment_id: int, inline: bool = False, db: Session = 
     if inline:
         return FileResponse(path, media_type=item.content_type or "application/octet-stream")
     return FileResponse(path, media_type=item.content_type or "application/octet-stream", filename=item.filename)
+
+
+@app.get("/api/attachments/{attachment_id}/preview", response_model=AttachmentPreviewOut)
+def preview_attachment(attachment_id: int, db: Session = Depends(get_db)):
+    item = db.get(Attachment, attachment_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="attachment not found")
+    path = Path(UPLOAD_DIR) / item.storage_name
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="attachment file missing")
+    ct = (item.content_type or "").lower()
+    name = item.filename.lower()
+    if name.endswith(".pptx") or "presentationml.presentation" in ct:
+        return AttachmentPreviewOut(type="pptx", filename=item.filename, slides=_extract_pptx_slides(path))
+    raise HTTPException(status_code=400, detail="preview is only supported for .pptx files")
 
 
 @app.delete("/api/attachments/{attachment_id}")

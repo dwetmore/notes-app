@@ -151,6 +151,33 @@
     }
     .history-list { max-height: 200px; overflow: auto; display: grid; gap: 8px; margin-top: 8px; }
     .history-item { border: 1px solid var(--border); border-radius: 10px; padding: 8px; background: var(--soft); }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      padding: 16px;
+    }
+    .modal {
+      width: min(900px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .slide-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      margin: 8px 0;
+      background: var(--soft);
+    }
     @media (max-width: 760px) {
       .row { grid-template-columns: 1fr; }
       .card { padding: 14px; border-radius: 14px; }
@@ -232,6 +259,15 @@
 
     <div id="notes" class="notes-grid"></div>
   </main>
+  <div id="preview-backdrop" class="modal-backdrop" onclick="closePreview(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="note-actions" style="justify-content:space-between; margin-bottom:8px;">
+        <strong id="preview-title">Preview</strong>
+        <button class="btn-outline" onclick="closePreview()">Close</button>
+      </div>
+      <div id="preview-content" class="meta">Loading preview...</div>
+    </div>
+  </div>
 
 <script>
 async function api(path, opts = {}) {
@@ -499,6 +535,36 @@ async function deleteAttachment(attachmentId) {
   }
 }
 
+async function previewAttachment(attachmentId) {
+  const backdrop = document.getElementById("preview-backdrop");
+  const title = document.getElementById("preview-title");
+  const content = document.getElementById("preview-content");
+  backdrop.style.display = "flex";
+  title.textContent = "Preview";
+  content.innerHTML = `<p class="meta">Loading preview...</p>`;
+  try {
+    const data = await api(`/api/attachments/${attachmentId}/preview`);
+    title.textContent = `Preview: ${data.filename}`;
+    if (!data.slides || !data.slides.length) {
+      content.innerHTML = `<p class="meta">No text content found in slides.</p>`;
+      return;
+    }
+    content.innerHTML = data.slides.map(s => `
+      <div class="slide-item">
+        <div class="meta"><strong>Slide ${s.index}</strong></div>
+        <div>${escapeHtml(s.text)}</div>
+      </div>
+    `).join("");
+  } catch (e) {
+    content.innerHTML = `<p class="meta">Preview error: ${escapeHtml(String(e))}</p>`;
+  }
+}
+
+function closePreview(event) {
+  if (event && event.target && event.target.id !== "preview-backdrop") return;
+  document.getElementById("preview-backdrop").style.display = "none";
+}
+
 function renderTagChips(items) {
   const el = document.getElementById("tag-chips");
   const tags = Array.from(new Set(items.flatMap(n => n.tags || []))).sort();
@@ -602,6 +668,9 @@ async function loadAttachments(noteId) {
         </div>
         <div class="note-actions">
           <span class="meta">${formatBytes(a.size_bytes)}</span>
+          ${fileKind(a.content_type, a.filename) === "PowerPoint"
+            ? `<button class="btn-outline" onclick="previewAttachment(${a.id})">Preview</button>`
+            : ``}
           <a class="btn-outline" href="${escapeHtml(a.download_url)}" target="_blank" style="text-decoration:none;">Download</a>
           <button class="btn-outline" onclick="deleteAttachment(${a.id})">Remove</button>
         </div>
