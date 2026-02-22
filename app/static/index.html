@@ -115,6 +115,13 @@
       display: flex; justify-content: space-between; align-items: center; gap: 10px;
       padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--soft);
     }
+    .attachment-preview {
+      margin-top: 8px;
+      width: min(260px, 100%);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: block;
+    }
     .attachment-link { color: var(--primary); text-decoration: none; font-size: 13px; font-weight: 600; word-break: break-all; }
     .attachment-link:hover { text-decoration: underline; }
     .chipbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -546,7 +553,12 @@ async function loadAttachments(noteId) {
     }
     el.innerHTML = attachments.map(a => `
       <div class="attachment-item">
-        <a class="attachment-link" href="${escapeHtml(a.download_url)}">${escapeHtml(a.filename)}</a>
+        <div style="min-width:0; flex:1;">
+          <a class="attachment-link" href="${escapeHtml(a.download_url)}" target="_blank">${escapeHtml(a.filename)}</a>
+          ${String(a.content_type || "").startsWith("image/")
+            ? `<img class="attachment-preview" src="${escapeHtml(a.download_url)}?inline=1" alt="${escapeHtml(a.filename)}" />`
+            : ``}
+        </div>
         <div class="note-actions">
           <span class="meta">${formatBytes(a.size_bytes)}</span>
           <button class="btn-outline" onclick="deleteAttachment(${a.id})">Remove</button>

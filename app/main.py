@@ -34,7 +34,8 @@ POSTGRES_USER = env_value("POSTGRES_USER") or env_value("DB_USER") or "notes"
 POSTGRES_PASSWORD = env_value("POSTGRES_PASSWORD") or env_value("DB_PASSWORD") or "notes"
 DB_PATH = env_value("DB_PATH")
 UPLOAD_DIR = env_value("UPLOAD_DIR") or "/data/uploads"
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+UPLOAD_MAX_SIZE_MB = int(env_value("UPLOAD_MAX_SIZE_MB") or "50")
+MAX_UPLOAD_SIZE = UPLOAD_MAX_SIZE_MB * 1024 * 1024
 
 if DATABASE_URL_ENV:
     DATABASE_URL = DATABASE_URL_ENV
@@ -305,7 +306,7 @@ def upload_attachment(note_id: int, file: UploadFile = File(...), db: Session = 
     data = file.file.read(MAX_UPLOAD_SIZE + 1)
     file.file.close()
     if len(data) > MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=413, detail="file too large (max 10 MiB)")
+        raise HTTPException(status_code=413, detail=f"file too large (max {UPLOAD_MAX_SIZE_MB} MiB)")
 
     storage_name = f"{uuid4().hex}-{original_name}"
     destination = Path(UPLOAD_DIR) / storage_name
@@ -356,18 +357,16 @@ def list_attachments(note_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/attachments/{attachment_id}/download")
-def download_attachment(attachment_id: int, db: Session = Depends(get_db)):
+def download_attachment(attachment_id: int, inline: bool = False, db: Session = Depends(get_db)):
     item = db.get(Attachment, attachment_id)
     if not item:
         raise HTTPException(status_code=404, detail="attachment not found")
     path = Path(UPLOAD_DIR) / item.storage_name
     if not path.exists():
         raise HTTPException(status_code=404, detail="attachment file missing")
-    return FileResponse(
-        path,
-        media_type=item.content_type or "application/octet-stream",
-        filename=item.filename,
-    )
+    if inline:
+        return FileResponse(path, media_type=item.content_type or "application/octet-stream")
+    return FileResponse(path, media_type=item.content_type or "application/octet-stream", filename=item.filename)
 
 
 @app.delete("/api/attachments/{attachment_id}")
