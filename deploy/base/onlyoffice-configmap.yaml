@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: onlyoffice-config
+  namespace: notes
+data:
+  local.json: |
+    {
+      "externalRequest": {
+        "action": {
+          "blockPrivateIP": false
+        }
+      },
+      "services": {
+        "CoAuthoring": {
+          "server": {
+            "limits_tempfile_upload": 734003200
+          }
+        }
+      },
+      "FileConverter": {
+        "converter": {
+          "maxDownloadBytes": 734003200,
+          "downloadTimeout": {
+            "connectionAndInactivity": "20m",
+            "wholeCycle": "20m"
+          }
+        }
+      }
+    }
