@@ -4,6 +4,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - onlyoffice-deployment.yaml
+  - onlyoffice-service.yaml
+  - onlyoffice-ingress.yaml
   - postgres-configmap.yaml
   - postgres-secret.yaml
   - postgres-service.yaml

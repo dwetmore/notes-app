@@ -125,6 +125,7 @@ Dev overlay host is patched in `deploy/overlays/dev/ingress-host.yaml`.
 Pattern:
 
 - `notes.<NODE_IP>.nip.io`
+- `docs.<NODE_IP>.nip.io` (OnlyOffice visual PPT preview)
 
 Update that file to match your cluster node IP before deploy.
 

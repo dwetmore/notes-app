@@ -159,6 +159,7 @@ class AttachmentPreviewOut(BaseModel):
     type: str
     filename: str
     slides: List[SlidePreviewOut]
+    download_url: Optional[str] = None
 
 
 app = FastAPI(title="Notes App")
@@ -433,7 +434,12 @@ def preview_attachment(attachment_id: int, db: Session = Depends(get_db)):
     ct = (item.content_type or "").lower()
     name = item.filename.lower()
     if name.endswith(".pptx") or "presentationml.presentation" in ct:
-        return AttachmentPreviewOut(type="pptx", filename=item.filename, slides=_extract_pptx_slides(path))
+        return AttachmentPreviewOut(
+            type="pptx",
+            filename=item.filename,
+            slides=_extract_pptx_slides(path),
+            download_url=f"/api/attachments/{item.id}/download",
+        )
     raise HTTPException(status_code=400, detail="preview is only supported for .pptx files")
 
 

@@ -299,6 +299,7 @@ let editingId = null;
 let activeTag = "";
 const notesCache = new Map();
 let attachmentsPollTimer = null;
+let onlyOfficeScriptPromise = null;
 
 function parseTagInput(raw) {
   return String(raw || "")
@@ -545,11 +546,17 @@ async function previewAttachment(attachmentId) {
   try {
     const data = await api(`/api/attachments/${attachmentId}/preview`);
     title.textContent = `Preview: ${data.filename}`;
+    if (data.type === "pptx" && data.download_url) {
+      const visualHost = `${window.location.protocol}//${window.location.host.replace(/^notes\./, "docs.")}`;
+      const documentUrl = `${window.location.origin}${data.download_url}?inline=1`;
+      const visualReady = await renderOnlyOfficePreview(content, visualHost, data.filename, documentUrl, attachmentId);
+      if (visualReady) return;
+    }
     if (!data.slides || !data.slides.length) {
       content.innerHTML = `<p class="meta">No text content found in slides.</p>`;
       return;
     }
-    content.innerHTML = data.slides.map(s => `
+    content.innerHTML = `<p class="meta">Visual preview unavailable, showing text fallback.</p>` + data.slides.map(s => `
       <div class="slide-item">
         <div class="meta"><strong>Slide ${s.index}</strong></div>
         <div>${escapeHtml(s.text)}</div>
@@ -557,6 +564,52 @@ async function previewAttachment(attachmentId) {
     `).join("");
   } catch (e) {
     content.innerHTML = `<p class="meta">Preview error: ${escapeHtml(String(e))}</p>`;
+  }
+}
+
+async function loadOnlyOfficeScript(visualHost) {
+  if (onlyOfficeScriptPromise) return onlyOfficeScriptPromise;
+  onlyOfficeScriptPromise = new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = `${visualHost}/web-apps/apps/api/documents/api.js`;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+  return onlyOfficeScriptPromise;
+}
+
+async function renderOnlyOfficePreview(container, visualHost, filename, documentUrl, attachmentId) {
+  const loaded = await loadOnlyOfficeScript(visualHost);
+  if (!loaded || !window.DocsAPI || !window.DocsAPI.DocEditor) {
+    return false;
+  }
+  container.innerHTML = `<div id="docx-preview-host" style="height:70vh;"></div>`;
+  const keyPart = `${attachmentId}-${Date.now()}`;
+  try {
+    new window.DocsAPI.DocEditor("docx-preview-host", {
+      documentType: "slide",
+      width: "100%",
+      height: "100%",
+      editorConfig: {
+        mode: "view",
+        customization: {
+          compactHeader: true,
+          toolbarNoTabs: true,
+        },
+      },
+      document: {
+        title: filename,
+        fileType: "pptx",
+        key: keyPart,
+        url: documentUrl,
+      },
+      type: "embedded",
+    });
+    return true;
+  } catch (e) {
+    container.innerHTML = `<p class="meta">Visual preview unavailable (${escapeHtml(String(e))}).</p>`;
+    return false;
   }
 }
 
