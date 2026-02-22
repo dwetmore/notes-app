@@ -31,7 +31,7 @@ POSTGRES_DB = env_value("POSTGRES_DB") or env_value("DB_NAME") or "notes"
 POSTGRES_USER = env_value("POSTGRES_USER") or env_value("DB_USER") or "notes"
 POSTGRES_PASSWORD = env_value("POSTGRES_PASSWORD") or env_value("DB_PASSWORD") or "notes"
 DB_PATH = env_value("DB_PATH")
-UPLOAD_DIR = env_value("UPLOAD_DIR") or os.path.join(os.path.dirname(__file__), "uploads")
+UPLOAD_DIR = env_value("UPLOAD_DIR") or "/data/uploads"
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024
 
 if DATABASE_URL_ENV:
