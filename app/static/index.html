@@ -73,6 +73,12 @@
     .actions { display:flex; gap: 8px; align-items:center; }
     .notes-grid { display: grid; gap: 12px; }
     .note-actions { display: flex; gap: 8px; }
+    .attachment-wrap { margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px; }
+    .attachment-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .attachments-list { margin-top: 8px; display: grid; gap: 6px; }
+    .attachment-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+    .attachment-link { color: var(--primary); text-decoration: none; font-size: 13px; }
+    .attachment-link:hover { text-decoration: underline; }
     .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
   </style>
 </head>
@@ -125,12 +131,23 @@
 
 <script>
 async function api(path, opts={}) {
-  const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", ...(opts.headers || {}) } });
+  const headers = { ...(opts.headers || {}) };
+  if (!(opts.body instanceof FormData) && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+  const r = await fetch(path, { ...opts, headers });
   if (!r.ok) {
     const t = await r.text();
     throw new Error(`${r.status} ${r.statusText}: ${t}`);
   }
-  return r.json();
+  if (r.status === 204) {
+    return null;
+  }
+  const contentType = r.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return r.json();
+  }
+  return r.text();
 }
 
 let editingId = null;
@@ -206,6 +223,42 @@ async function deleteNote(id) {
   }
 }
 
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+async function uploadAttachment(noteId) {
+  const input = document.getElementById(`file-${noteId}`);
+  const msg = document.getElementById("msg");
+  const file = input.files[0];
+  if (!file) {
+    msg.textContent = "Choose a file first.";
+    return;
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    await api(`/api/notes/${noteId}/attachments`, { method: "POST", body: formData });
+    msg.textContent = `Uploaded ${file.name}.`;
+    input.value = "";
+    await refreshNotes();
+  } catch (e) {
+    msg.textContent = String(e);
+  }
+}
+
+async function deleteAttachment(attachmentId) {
+  if (!confirm(`Delete attachment ${attachmentId}?`)) return;
+  try {
+    await api(`/api/attachments/${attachmentId}`, { method: "DELETE" });
+    await refreshNotes();
+  } catch (e) {
+    alert(String(e));
+  }
+}
+
 function renderNotes(items) {
   const el = document.getElementById("notes");
   notesCache.clear();
@@ -226,8 +279,42 @@ function renderNotes(items) {
           <button class="danger" onclick="deleteNote(${n.id})">Delete</button>
         </div>
       </div>
+      <div class="attachment-wrap">
+        <p class="meta">Attachments</p>
+        <div class="attachment-row">
+          <input id="file-${n.id}" type="file" style="max-width:280px;" />
+          <button class="btn-outline" onclick="uploadAttachment(${n.id})">Upload file</button>
+        </div>
+        <div class="attachments-list" id="attachments-${n.id}">
+          <p class="meta">Loading attachments...</p>
+        </div>
+      </div>
     </div>
   `).join("");
+  items.forEach(loadAttachments);
+}
+
+async function loadAttachments(noteId) {
+  const el = document.getElementById(`attachments-${noteId}`);
+  if (!el) return;
+  try {
+    const attachments = await api(`/api/notes/${noteId}/attachments`);
+    if (!attachments.length) {
+      el.innerHTML = `<p class="meta">No files yet.</p>`;
+      return;
+    }
+    el.innerHTML = attachments.map(a => `
+      <div class="attachment-item">
+        <a class="attachment-link" href="${escapeHtml(a.download_url)}">${escapeHtml(a.filename)}</a>
+        <div class="note-actions">
+          <span class="meta">${formatBytes(a.size_bytes)}</span>
+          <button class="btn-outline" onclick="deleteAttachment(${a.id})">Remove</button>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) {
+    el.innerHTML = `<p class="meta">Attachment error: ${escapeHtml(String(e))}</p>`;
+  }
 }
 
 function escapeHtml(s) {

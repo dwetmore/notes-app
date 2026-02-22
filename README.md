@@ -32,6 +32,10 @@ Stable endpoints:
 - `POST /api/notes`
 - `PUT /api/notes/{id}`
 - `DELETE /api/notes/{id}`
+- `GET /api/notes/{id}/attachments`
+- `POST /api/notes/{id}/attachments` (multipart file upload)
+- `GET /api/attachments/{id}/download`
+- `DELETE /api/attachments/{id}`
 
 ## Local development
 
@@ -74,6 +78,11 @@ Database backend selection rules:
 - Postgres is selected when `DB_HOST` or `DATABASE_URL` is set.
 - SQLite is selected only when `DB_PATH` is set.
 - Startup fails with a clear error when none of these are set.
+
+Attachment upload defaults:
+
+- `UPLOAD_DIR` controls attachment storage path (default `app/uploads`).
+- Maximum file size is 10 MiB per upload.
 
 
 ## Testing
