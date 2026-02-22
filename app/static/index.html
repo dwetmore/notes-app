@@ -262,6 +262,7 @@ async function apiWithTimeout(path, opts = {}, timeoutMs = 20000) {
 let editingId = null;
 let activeTag = "";
 const notesCache = new Map();
+let attachmentsPollTimer = null;
 
 function parseTagInput(raw) {
   return String(raw || "")
@@ -575,6 +576,9 @@ function renderNotes(items) {
     </div>
   `).join("");
   items.forEach(loadAttachments);
+  // Retry once shortly after render to avoid transient race/loading stalls.
+  setTimeout(() => items.forEach(n => loadAttachments(n.id)), 1200);
+  restartAttachmentPolling();
 }
 
 async function loadAttachments(noteId) {
@@ -607,6 +611,15 @@ async function loadAttachments(noteId) {
   } catch (e) {
     el.innerHTML = `<p class="meta">Attachment error: ${escapeHtml(String(e))}</p>`;
   }
+}
+
+function restartAttachmentPolling() {
+  if (attachmentsPollTimer) clearInterval(attachmentsPollTimer);
+  attachmentsPollTimer = setInterval(() => {
+    for (const id of notesCache.keys()) {
+      loadAttachments(id);
+    }
+  }, 8000);
 }
 
 function escapeHtml(s) {
