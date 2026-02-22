@@ -23,29 +23,21 @@ spec:
           args:
             - |
               set -eu
-              node <<'NODE'
-              const fs = require("fs");
-              const path = "/etc/onlyoffice/documentserver/local.json";
-              const cfg = JSON.parse(fs.readFileSync(path, "utf8"));
-
-              cfg.externalRequest = cfg.externalRequest || {};
-              cfg.externalRequest.action = cfg.externalRequest.action || {};
-              cfg.externalRequest.action.blockPrivateIP = false;
-
-              cfg.services = cfg.services || {};
-              cfg.services.CoAuthoring = cfg.services.CoAuthoring || {};
-              cfg.services.CoAuthoring.server = cfg.services.CoAuthoring.server || {};
-              cfg.services.CoAuthoring.server.limits_tempfile_upload = 734003200;
-
-              cfg.FileConverter = cfg.FileConverter || {};
-              cfg.FileConverter.converter = cfg.FileConverter.converter || {};
-              cfg.FileConverter.converter.maxDownloadBytes = 734003200;
-              cfg.FileConverter.converter.downloadTimeout = cfg.FileConverter.converter.downloadTimeout || {};
-              cfg.FileConverter.converter.downloadTimeout.connectionAndInactivity = "20m";
-              cfg.FileConverter.converter.downloadTimeout.wholeCycle = "20m";
-
-              fs.writeFileSync(path, JSON.stringify(cfg, null, 2));
-              NODE
+              JSON_BIN=/var/www/onlyoffice/documentserver/npm/json
+              JSON="$JSON_BIN -I -q -f /etc/onlyoffice/documentserver/local.json"
+              $JSON -e 'if(this.externalRequest===undefined)this.externalRequest={};'
+              $JSON -e 'if(this.externalRequest.action===undefined)this.externalRequest.action={};'
+              $JSON -e 'this.externalRequest.action.blockPrivateIP=false'
+              $JSON -e 'if(this.services===undefined)this.services={};'
+              $JSON -e 'if(this.services.CoAuthoring===undefined)this.services.CoAuthoring={};'
+              $JSON -e 'if(this.services.CoAuthoring.server===undefined)this.services.CoAuthoring.server={};'
+              $JSON -e 'this.services.CoAuthoring.server.limits_tempfile_upload=734003200'
+              $JSON -e 'if(this.FileConverter===undefined)this.FileConverter={};'
+              $JSON -e 'if(this.FileConverter.converter===undefined)this.FileConverter.converter={};'
+              $JSON -e 'this.FileConverter.converter.maxDownloadBytes=734003200'
+              $JSON -e 'if(this.FileConverter.converter.downloadTimeout===undefined)this.FileConverter.converter.downloadTimeout={};'
+              $JSON -e 'this.FileConverter.converter.downloadTimeout.connectionAndInactivity="20m"'
+              $JSON -e 'this.FileConverter.converter.downloadTimeout.wholeCycle="20m"'
               exec /app/ds/run-document-server.sh
           ports:
             - containerPort: 80
