@@ -3,6 +3,9 @@ kind: Ingress
 metadata:
   name: notes-app
   namespace: notes
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "12m"
+    nginx.org/client-max-body-size: "12m"
 spec:
   rules:
     - host: notes.172.17.93.185.nip.io
