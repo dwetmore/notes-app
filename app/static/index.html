@@ -444,7 +444,12 @@ async function uploadAttachmentToNote(noteId, fileInput) {
     fileInput.value = "";
     await refreshNotes();
   } catch (e) {
-    msg.textContent = String(e);
+    const text = String(e);
+    msg.textContent = text;
+    if (text.includes("404") && text.toLowerCase().includes("note not found")) {
+      msg.textContent = "That note was deleted or archived from this view. Refreshing notes list.";
+      await refreshNotes();
+    }
   }
 }
 
