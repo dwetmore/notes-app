@@ -115,6 +115,15 @@
       display: flex; justify-content: space-between; align-items: center; gap: 10px;
       padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--soft);
     }
+    .file-kind {
+      font-size: 11px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+      display: inline-flex;
+      margin-left: 6px;
+    }
     .attachment-preview {
       margin-top: 8px;
       width: min(260px, 100%);
@@ -429,6 +438,15 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
+function fileKind(contentType, filename) {
+  const ct = String(contentType || "").toLowerCase();
+  const name = String(filename || "").toLowerCase();
+  if (ct.startsWith("image/")) return "Image";
+  if (ct.includes("presentation") || name.endsWith(".pptx") || name.endsWith(".ppt")) return "PowerPoint";
+  if (ct.includes("pdf") || name.endsWith(".pdf")) return "PDF";
+  return "File";
+}
+
 async function uploadAttachmentToNote(noteId, fileInput) {
   const msg = document.getElementById("msg");
   const file = fileInput.files[0];
@@ -568,20 +586,24 @@ async function loadAttachments(noteId) {
       el.innerHTML = `<p class="meta">No files yet.</p>`;
       return;
     }
+    const heading = `<p class="meta" style="margin:0 0 6px;">${attachments.length} file${attachments.length === 1 ? "" : "s"}</p>`;
     el.innerHTML = attachments.map(a => `
       <div class="attachment-item">
         <div style="min-width:0; flex:1;">
           <a class="attachment-link" href="${escapeHtml(a.download_url)}" target="_blank">${escapeHtml(a.filename)}</a>
+          <span class="file-kind">${escapeHtml(fileKind(a.content_type, a.filename))}</span>
           ${String(a.content_type || "").startsWith("image/")
             ? `<img class="attachment-preview" src="${escapeHtml(a.download_url)}?inline=1" alt="${escapeHtml(a.filename)}" />`
             : ``}
         </div>
         <div class="note-actions">
           <span class="meta">${formatBytes(a.size_bytes)}</span>
+          <a class="btn-outline" href="${escapeHtml(a.download_url)}" target="_blank" style="text-decoration:none;">Download</a>
           <button class="btn-outline" onclick="deleteAttachment(${a.id})">Remove</button>
         </div>
       </div>
     `).join("");
+    el.innerHTML = heading + el.innerHTML;
   } catch (e) {
     el.innerHTML = `<p class="meta">Attachment error: ${escapeHtml(String(e))}</p>`;
   }
