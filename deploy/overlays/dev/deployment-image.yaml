@@ -8,4 +8,4 @@ spec:
     spec:
       containers:
         - name: notes-app
-          image: localhost:32000/notes-app:0.7
+          image: localhost:32000/notes-app:0.8

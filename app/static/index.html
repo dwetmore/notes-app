@@ -360,8 +360,23 @@ async function createShare(id) {
   try {
     const resp = await api(`/api/notes/${id}/share`, { method: "POST" });
     const full = `${window.location.origin}${resp.share_url}`;
-    await navigator.clipboard.writeText(full);
-    document.getElementById("msg").textContent = `Share link copied: ${full}`;
+    let copied = false;
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(full);
+      copied = true;
+    } else {
+      const input = document.createElement("input");
+      input.value = full;
+      document.body.appendChild(input);
+      input.select();
+      copied = document.execCommand("copy");
+      document.body.removeChild(input);
+    }
+    if (copied) {
+      document.getElementById("msg").textContent = `Share link copied: ${full}`;
+    } else {
+      document.getElementById("msg").innerHTML = `Share link: <a class="attachment-link" href="${escapeHtml(resp.share_url)}" target="_blank">${escapeHtml(full)}</a>`;
+    }
     await refreshNotes();
   } catch (e) {
     document.getElementById("msg").textContent = `Share error: ${String(e)}`;
