@@ -22,6 +22,10 @@ spec:
           env:
             - name: JWT_ENABLED
               value: "false"
+            - name: ALLOW_PRIVATE_IP_ADDRESS
+              value: "true"
+            - name: ALLOW_META_IP_ADDRESS
+              value: "true"
           resources:
             requests:
               cpu: 250m
